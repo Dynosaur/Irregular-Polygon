@@ -1,12 +1,14 @@
 /**
  * @author Alejandro Doberenz
- * @version 2/16/2019
+ * @version 2/20/2019
+ *
+ * A line segment is a line that begins at a point and ends at another.
  */
 public class Segment {
 
     private Coordinate start,end;
 
-    private double distance;
+    private double distance, slope;
 
     // <editor-fold defaultstate="collapsed" desc="Accessor Methods">
     public Coordinate getStart() {
@@ -14,6 +16,12 @@ public class Segment {
     }
     public Coordinate getEnd() {
         return end;
+    }
+    public double getDistance() {
+        return distance;
+    }
+    public double getSlope() {
+        return slope;
     }
     // </editor-fold>
 
@@ -24,10 +32,17 @@ public class Segment {
         return Math.sqrt((ac * ac) + (bc * bc));
     }
 
+    public static double slope(Coordinate a, Coordinate b) {
+        double xChg = a.getX() - b.getX();
+        double yChg = a.getY() - b.getY();
+        return yChg / xChg;
+    }
+
     public Segment(Coordinate a, Coordinate b) {
         start = a;
         end = b;
         distance = distance(start, end);
+        slope = slope(start, end);
     }
 
 }
