@@ -8,7 +8,7 @@ public class Segment {
 
     private Coordinate start,end;
 
-    private double distance, slope;
+    private double distance, slope, intercept, minX, maxX;
 
     // <editor-fold defaultstate="collapsed" desc="Accessor Methods">
     public Coordinate getStart() {
@@ -25,13 +25,37 @@ public class Segment {
     }
     // </editor-fold>
 
+    public void draw(Pen pen) {
+        pen.up();
+        pen.move(start);
+        pen.down();
+        pen.move(end);
+    }
+
+    public double getY(double x) {
+        if(x < minX || x > maxX)
+            throw new IllegalArgumentException("Given x value outside of line segment");
+        return slope * x + intercept;
+    }
+
+    public boolean doesIntersect(Segment b) {
+        double x = (b.intercept - intercept) / (slope - b.slope);
+        return x >= start.getX() && x <= end.getX();
+    }
+    public Coordinate intersect(Segment b) {
+        if(doesIntersect(b)) {
+            double x = (b.intercept - intercept) / (slope - b.slope);
+            return new Coordinate(x, getY(x));
+        } else
+            throw new IllegalArgumentException("Lines do not intersect.");
+    }
+
     public static double distance(Coordinate a, Coordinate b) {
         Coordinate c = new Coordinate(a.getX(), b.getY());
         double ac = c.getY() - a.getY();
         double bc = c.getX() - b.getX();
         return Math.sqrt((ac * ac) + (bc * bc));
     }
-
     public static double slope(Coordinate a, Coordinate b) {
         double xChg = a.getX() - b.getX();
         double yChg = a.getY() - b.getY();
@@ -39,9 +63,27 @@ public class Segment {
     }
 
     public Segment(Coordinate a, Coordinate b) {
-        start = a;
-        end = b;
+        if(a.getX() < b.getX()) {
+            start = a;
+            end = b;
+        } else {
+            start = b;
+            end = a;
+        }
         distance = distance(start, end);
+        intercept = -slope * start.getX() + start.getY();
+        if(start.getX() == end.getX()) {
+            minX = start.getX();
+            maxX = start.getX();
+        } else {
+            if(start.getX() > end.getX()) {
+                minX = end.getX();
+                maxX = start.getX();
+            } else {
+                minX = start.getX();
+                maxX = end.getX();
+            }
+        }
         slope = slope(start, end);
     }
 
