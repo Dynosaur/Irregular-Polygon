@@ -4,7 +4,7 @@
  *
  * A Coordinate represents a point on the GPDraw sketchpad.
  */
-public class Coordinate {
+public class Coordinate implements java.io.Serializable {
 
     private double x; // x location of the point
     private double y; // y location of the point
@@ -23,6 +23,16 @@ public class Coordinate {
 
     @Override public String toString() {
         return "(" + x + ", " + y + ")";
+    }
+
+    public void draw(Pen pen, java.awt.Color color) {
+        pen.up();
+        pen.move(this);
+        pen.down();
+        pen.setWidth(7);
+        pen.setColor(color);
+        pen.move(this);
+        pen.setWidth(1);
     }
 
     public Coordinate(double x, double y) {

@@ -9,7 +9,7 @@ import java.awt.Color;
  * The Pen operates in the same fashion as a DrawingTool, however it includes a method to allow
  * moving to a given coordinate.
  */
-public class Pen extends gpdraw.DrawingTool {
+public class Pen extends gpdraw.DrawingTool implements java.io.Serializable {
 
     public void move(Coordinate c) {
         move(c.getX(), c.getY());

@@ -4,7 +4,7 @@
  *
  * A line segment is a line that begins at a point and ends at another.
  */
-public class Segment {
+public class Segment implements java.io.Serializable {
 
     private Coordinate start,end;
 
@@ -51,15 +51,19 @@ public class Segment {
     }
 
     public static double distance(Coordinate a, Coordinate b) {
-        Coordinate c = new Coordinate(a.getX(), b.getY());
-        double ac = c.getY() - a.getY();
-        double bc = c.getX() - b.getX();
-        return Math.sqrt((ac * ac) + (bc * bc));
+        Coordinate third = new Coordinate(a.getX(), b.getY());
+        double s1 = third.getY() - a.getY();
+        double s2 = third.getX() - b.getX();
+        return Math.sqrt((s1*s1) + (s2*s2));
     }
     public static double slope(Coordinate a, Coordinate b) {
         double xChg = a.getX() - b.getX();
         double yChg = a.getY() - b.getY();
         return yChg / xChg;
+    }
+
+    @Override public String toString() {
+        return "Segment (" + start + ", " + end + ")";
     }
 
     public Segment(Coordinate a, Coordinate b) {
