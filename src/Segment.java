@@ -83,7 +83,7 @@ public class Segment implements java.io.Serializable {
     * Finds the coordinate where two lines intersect.
     *
     * @param    otherLine The other line to find the intersection at
-    * @returns  The coordinate the lines intersect at
+    * @return  The coordinate the lines intersect at
     */
     public Coordinate intersect(Segment otherLine) {
         if(doesIntersect(otherLine)) {
