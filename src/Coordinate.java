@@ -1,20 +1,21 @@
 /**
  * @author Alejandro Doberenz
- * @version 2/23/2019
+ * @version 2/25/2019
  *
  * A coordinate represents a position on an X and Y graph. It contains methods to compare it to other coordinates,
  * convert it to a String, and draw it with a Pen object.
  */
 public class Coordinate implements java.io.Serializable {
 
-    private double x, y;    // The X and Y position
+    // The X and Y position
+    private final double X, Y;
     
     // <editor-fold defaultstate="collapsed" desc="Accessor Methods">
     public double getX() {
-        return x;
+        return X;
     }
     public double getY() {
-        return y;
+        return Y;
     }
     // </editor-fold>
     
@@ -31,24 +32,31 @@ public class Coordinate implements java.io.Serializable {
         pen.setWidth(1);
     }
     
-    // Get a point that is a distance away from this point
+    /**
+    * Creates a new coordinate at the modified coordinates.
+    *
+    * @param    x Modifies the X position by this amount.
+    * @param    y Y position to add to the current coordinate
+    * @return   New coordinate with the modified coordinates.
+    */
     public Coordinate translate(double x, double y) {
-        return new Coordinate(this.x +x, this.y + y);
+        return new Coordinate(X + x, Y + y);
     }
 
     // <editor-fold defaultstate="collapsed" desc="Object Methods">
     @Override public String toString() {
-        return "(" + x + ", " + y + ")";
+        return "(" + X + ", " + Y + ")";
     }
     @Override public boolean equals(Object obj) {
         if(!(obj instanceof Coordinate)) return false;
         Coordinate coordinate = (Coordinate) obj;
-        return Math.abs((coordinate.x - x) - 1.0D) <= 1.0D && Math.abs((coordinate.y - y) - 1.0D) <= 1.0D;
+        return Math.abs((coordinate.X - X) - 1.0D) <= 1.0D && Math.abs((coordinate.Y - Y) - 1.0D) <= 1.0D;
     }
     // </editor-fold>
     
     public Coordinate(double x, double y) {
-        this.x = x;
-        this.y = y;
+        X = x;
+        Y = y;
     }
+    
 }
