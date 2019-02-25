@@ -42,6 +42,29 @@ public class Coordinate implements java.io.Serializable {
     public Coordinate translate(double x, double y) {
         return new Coordinate(X + x, Y + y);
     }
+    /**
+    * Finds the distance between this coordinate and another.
+    *
+    * @param    otherCoordinate The coordinate to find the distance to
+    * @return   The distance from this point to otherCoordinate.
+    */
+    public double distance(Coordinate otherCoordinate) {
+        Coordinate third = new Coordinate(X, otherCoordinate.Y);
+        double side1 = third.X - otherLine.X;
+        double side2 = third.Y - otherLine.Y;
+        return Math.sqrt((side1*side1) + (side2*side2));
+    }
+    /**
+    * Finds the slope between this coordinate and another.
+    *
+    * @param    otherCoordinate The coordinate to find the slope to
+    * @return   The slope between this point and otherCoordinate
+    */
+    public static double slope(Coordinate otherCoordinate) {
+        double xChg = X - otherCoordinate.X;
+        double yChg = Y - otherCoordinate.Y;
+        return yChg / xChg;
+    }
 
     // <editor-fold defaultstate="collapsed" desc="Object Methods">
     @Override public String toString() {
