@@ -1,8 +1,9 @@
 /**
  * @author Alejandro Doberenz
- * @version 2/20/2019
+ * @version 2/23/2019
  *
- * A line segment is a line that begins at a point and ends at another.
+ * A line segment is a line that begins at a coordinate and ends at another. Although drawing methods do not require it,
+ * the slope is calculated for the reason of calculating intersecting lines.
  */
 public class Segment implements java.io.Serializable {
 
@@ -29,7 +30,9 @@ public class Segment implements java.io.Serializable {
         pen.up();
         pen.move(start);
         pen.down();
+        start.draw(pen);
         pen.move(end);
+        end.draw(pen);
     }
 
     public double getY(double x) {
@@ -40,7 +43,13 @@ public class Segment implements java.io.Serializable {
 
     public boolean doesIntersect(Segment b) {
         double x = (b.intercept - intercept) / (slope - b.slope);
-        return x >= start.getX() && x <= end.getX();
+        try {
+            Coordinate intersect = new Coordinate(x, getY(x));
+            if(intersect.equals(start) || intersect.equals(end) || intersect.equals(b.start) || intersect.equals(b.end)) return false;
+            return Math.abs(intersect.getY() - b.getY(x)) <= 0.0001;
+        } catch(IllegalArgumentException ex) {
+            return false;
+        }
     }
     public Coordinate intersect(Segment b) {
         if(doesIntersect(b)) {
@@ -67,14 +76,10 @@ public class Segment implements java.io.Serializable {
     }
 
     public Segment(Coordinate a, Coordinate b) {
-        if(a.getX() < b.getX()) {
-            start = a;
-            end = b;
-        } else {
-            start = b;
-            end = a;
-        }
+        start = a;
+        end = b;
         distance = distance(start, end);
+        slope = slope(start, end);
         intercept = -slope * start.getX() + start.getY();
         if(start.getX() == end.getX()) {
             minX = start.getX();
@@ -88,7 +93,6 @@ public class Segment implements java.io.Serializable {
                 maxX = end.getX();
             }
         }
-        slope = slope(start, end);
     }
 
 }

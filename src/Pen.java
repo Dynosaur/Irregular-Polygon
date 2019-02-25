@@ -1,4 +1,5 @@
 import gpdraw.SketchPad;
+import gpdraw.SketchPadPanel;
 
 import java.awt.Color;
 
@@ -16,6 +17,9 @@ public class Pen extends gpdraw.DrawingTool implements java.io.Serializable {
     }
 
     public Pen(SketchPad sp) {
+        super(sp);
+    }
+    public Pen(SketchPadPanel sp) {
         super(sp);
     }
 
