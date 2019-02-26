@@ -50,8 +50,8 @@ public class Coordinate implements java.io.Serializable {
     */
     public double distance(Coordinate otherCoordinate) {
         Coordinate third = new Coordinate(X, otherCoordinate.Y);
-        double side1 = third.X - otherLine.X;
-        double side2 = third.Y - otherLine.Y;
+        double side1 = third.X - otherCoordinate.X;
+        double side2 = third.Y - otherCoordinate.Y;
         return Math.sqrt((side1*side1) + (side2*side2));
     }
     /**
@@ -60,7 +60,7 @@ public class Coordinate implements java.io.Serializable {
     * @param    otherCoordinate The coordinate to find the slope to
     * @return   The slope between this point and otherCoordinate
     */
-    public static double slope(Coordinate otherCoordinate) {
+    public double slope(Coordinate otherCoordinate) {
         double xChg = X - otherCoordinate.X;
         double yChg = Y - otherCoordinate.Y;
         return yChg / xChg;

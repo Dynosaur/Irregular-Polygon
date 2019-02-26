@@ -6,7 +6,7 @@ public class GUI {
 
     private JFrame window;
 
-    private JPanel leftPanel, middlePanel, rightPanel;
+    private JPanel leftPanel, infoPanel, middlePanel, rightPanel;
 
     private SketchPadPanel drawPanel;
 
@@ -16,6 +16,8 @@ public class GUI {
     private JTextArea currentLinesField;
 
     private Pen pen;
+
+    private int step;
 
     private void draw() {
         Thread drawThread = new Thread(() -> {
@@ -38,6 +40,7 @@ public class GUI {
             currentLinesText.append("\n");
         }
         currentLinesField.setText(currentLinesText.toString());
+        currentLinesField.setText("");
 
     }
 
@@ -51,6 +54,7 @@ public class GUI {
         update();
     }
     private void resetButtonClicked() {
+        drawPanel = null;
         drawPanel = new SketchPadPanel();
         lineBuilder = new LineBuilder(lineBuilder.getVerbose(), lineBuilder.getOriginalCoordinates());
         update();
@@ -60,6 +64,13 @@ public class GUI {
         leftPanel = new JPanel();
         leftPanel.setBorder(BorderFactory.createLineBorder(new java.awt.Color(0,150,250)));
 
+        JLabel step = new JLabel("Step: " + 0);
+
+    }
+    private void infoPanel() {
+        infoPanel = new JPanel();
+        infoPanel.setBorder(BorderFactory.createLineBorder(new java.awt.Color(0,150,250)));
+
         JLabel originalCoordinateLabel = new JLabel("Original Coordinates:   " + Helper.asString(lineBuilder.getAvailableCoordinates().toArray()));
         stepCoordinateLabel = new JLabel("Available Coordinates: " + Helper.asString(lineBuilder.getAvailableCoordinates().toArray()));
         currentLinesField = new JTextArea();
@@ -67,8 +78,8 @@ public class GUI {
         currentLinesField.setAutoscrolls(true);
         JScrollPane lineScrollPane = new JScrollPane(currentLinesField, ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED, ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED);
 
-        GroupLayout layout = new GroupLayout(leftPanel);
-        leftPanel.setLayout(layout);
+        GroupLayout layout = new GroupLayout(infoPanel);
+        infoPanel.setLayout(layout);
 
         layout.setHorizontalGroup(
             layout.createSequentialGroup()
@@ -137,7 +148,7 @@ public class GUI {
         rightPanel = new JPanel();
         rightPanel.setBorder(BorderFactory.createLineBorder(new java.awt.Color(0,150,250)));
 
-        drawPanel = new SketchPadPanel();
+        drawPanel = new SketchPadPanel(0);
         JScrollPane lineScrollPane = new JScrollPane(drawPanel, ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS, ScrollPaneConstants.HORIZONTAL_SCROLLBAR_ALWAYS);
         pen = new Pen(drawPanel);
 
@@ -162,6 +173,7 @@ public class GUI {
         window.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
         leftPanel();
+        infoPanel();
         middlePanel();
         rightPanel();
 
@@ -172,7 +184,7 @@ public class GUI {
         layout.setHorizontalGroup(
             layout.createSequentialGroup()
                 .addGap(10,25,Short.MAX_VALUE)
-                .addComponent(leftPanel)
+                .addComponent(infoPanel)
                 .addGap(10,25,25)
                 .addComponent(middlePanel)
                 .addGap(10,25,25)
@@ -184,7 +196,7 @@ public class GUI {
                 .addGap(10,25,Short.MAX_VALUE)
                 .addGroup(
                     layout.createParallelGroup(GroupLayout.Alignment.CENTER)
-                        .addComponent(leftPanel)
+                        .addComponent(infoPanel)
                         .addComponent(middlePanel)
                         .addComponent(rightPanel)
                 )

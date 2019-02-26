@@ -139,11 +139,11 @@ public class LineBuilder {
                 connectLast = true;
             }
 
-            if(verbose) System.out.print("Available Coordinates[" + availableCoordinates.size() +"]: ");
-            if(verbose) Helper.print(availableCoordinates.toArray());
-
             Step thisStep = new Step(connectLast, availableCoordinates, lastAvailable, createdLines, steps, lastLine);
             steps.add(thisStep);
+
+            if(verbose) System.out.print("Available Coordinates[" + availableCoordinates.size() +"]: ");
+            if(verbose) Helper.print(availableCoordinates.toArray());
 
             Segment candidate = findNextBestLine();
 

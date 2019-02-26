@@ -5,9 +5,6 @@ import java.util.ArrayList;
 public class Runner {
 
     public static void main(String[] args) {
-        //SketchPad sp = new SketchPad(250,250);
-        //Pen pen = new Pen(sp);
-
         Coordinate a = new Coordinate(20,45);
         Coordinate b = new Coordinate(40,28);
         Coordinate c = new Coordinate(10,33);

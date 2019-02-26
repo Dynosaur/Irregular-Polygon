@@ -46,9 +46,9 @@ public class Segment implements java.io.Serializable {
         pen.down();
         
         pen.setColor(color);
-        start.draw(pen);
+        START.draw(pen);
         pen.move(END);
-        end.draw(pen);
+        END.draw(pen);
     }
 
     /**
@@ -58,9 +58,9 @@ public class Segment implements java.io.Serializable {
     * @return   The Y value of this line at the X value
     */
     public double getY(double x) throws IsOutsideLineException {
-        if(X < MINIMUM || X > MAXIMUM)
+        if(x < MINIMUM || x > MAXIMUM)
             throw new IsOutsideLineException(x + " is outside of this line segment:\nMINIMUM: " + MINIMUM + "\nMAXIMUM: " + MAXIMUM);
-        return SLOPE * X + INTERCEPT;
+        return SLOPE * x + INTERCEPT;
     }
     
     /**
@@ -74,7 +74,7 @@ public class Segment implements java.io.Serializable {
         try {
             Coordinate intersect = new Coordinate(x, getY(x));
             if(intersect.equals(START) || intersect.equals(END) || intersect.equals(otherLine.START) || intersect.equals(otherLine.END)) return false;
-            return Math.abs(intersect.getY() - b.getY(x)) <= 0.0001;
+            return Math.abs(intersect.getY() - otherLine.getY(x)) <= 0.0001;
         } catch(IsOutsideLineException e) {
             return false;
         }
@@ -86,22 +86,24 @@ public class Segment implements java.io.Serializable {
     * @return  The coordinate the lines intersect at
     */
     public Coordinate intersect(Segment otherLine) {
-        if(doesIntersect(otherLine)) {
+        try {
             double x = (INTERCEPT - otherLine.INTERCEPT) / (otherLine.SLOPE - SLOPE);
             return new Coordinate(x, getY(x));
-        } else throw new IllegalArgumentException(otherLine + " does not intersect with " + this + ".");
+        } catch(IsOutsideLineException x) {
+            throw new IllegalArgumentException();
+        }
     }
 
     @Override public String toString() {
-        return "Segment (" + start + ", " + end + ")";
+        return "Segment (" + START + ", " + END + ")";
     }
 
     public Segment(Coordinate start, Coordinate end) {
         START = start;
         END = end;
-        distance = START.distance(END);                     // pythagorean theorem
-        slope = START.slope(END);                           // yChg/xChg
-        intercept = START.getY() - SLOPE * START.getX();    // b = y-mx
+        DISTANCE = START.distance(END);                     // pythagorean theorem
+        SLOPE = START.slope(END);                           // yChg/xChg
+        INTERCEPT = START.getY() - SLOPE * START.getX();    // b = y-mx
         if(start.getX() == end.getX()) {
             MINIMUM = start.getX();
             MAXIMUM = start.getX();
