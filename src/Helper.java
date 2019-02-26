@@ -23,7 +23,7 @@ public class Helper {
 
     // Generate a random integer with a lower and upper bound
     public static int random(int min, int max) {
-        return (int) (Math.random() * (max - min) + min);
+        return (int) random(min, max);
     }
 
     // Print out the contents of an array
