@@ -12,7 +12,7 @@ public class GUI {
 
     private JFrame window;
 
-    private JPanel leftPanel, infoPanel, middlePanel, rightPanel;
+    private JPanel stepPanel, infoPanel, middlePanel, rightPanel;
 
     private SketchPadPanel drawPanel;
 
@@ -84,6 +84,8 @@ public class GUI {
     }
     private void resetButtonClicked() {
         numOfSteps = 0;
+        drawPanel.getParent().paint(drawPanel.getGraphics());
+        drawPanel.paint(drawPanel.getGraphics());
         drawPanel = null;
         drawPanel = new SketchPadPanel();
         lineBuilder = new LineBuilder(lineBuilder.getVerbose(), lineBuilder.getOriginalCoordinates());
@@ -91,14 +93,14 @@ public class GUI {
     }
 
     private void leftPanel() {
-        leftPanel = new JPanel();
-        leftPanel.setBorder(BorderFactory.createLineBorder(new java.awt.Color(0,150,250)));
+        stepPanel = new JPanel();
+        stepPanel.setBorder(BorderFactory.createLineBorder(new java.awt.Color(0,150,250)));
 
         stepLabel = new JLabel("Steps Completed: " + 0);
         stepLastCoordinates = new JLabel("Step Coordinates: Not Available");
 
-        GroupLayout layout = new GroupLayout(leftPanel);
-        leftPanel.setLayout(layout);
+        GroupLayout layout = new GroupLayout(stepPanel);
+        stepPanel.setLayout(layout);
 
         layout.setHorizontalGroup(
             layout.createSequentialGroup()
@@ -236,13 +238,18 @@ public class GUI {
         layout.setHorizontalGroup(
             layout.createSequentialGroup()
                 .addGap(10,25,Short.MAX_VALUE)
-                .addComponent(leftPanel)
-                .addGap(10,25,Short.MAX_VALUE)
-                .addComponent(infoPanel)
-                .addGap(10,25,25)
-                .addComponent(middlePanel)
-                .addGap(10,25,25)
-                .addComponent(rightPanel)
+                .addGroup(
+                    layout.createParallelGroup(GroupLayout.Alignment.CENTER)
+                        .addGroup(
+                            layout.createSequentialGroup()
+                                .addComponent(infoPanel)
+                                .addGap(10,25,25)
+                                .addComponent(middlePanel)
+                                .addGap(10,25,25)
+                                .addComponent(rightPanel)
+                        )
+                    .addComponent(stepPanel)
+                )
                 .addGap(10,25,Short.MAX_VALUE)
         );
         layout.setVerticalGroup(
@@ -250,11 +257,11 @@ public class GUI {
                 .addGap(10,25,Short.MAX_VALUE)
                 .addGroup(
                     layout.createParallelGroup(GroupLayout.Alignment.CENTER)
-                        .addComponent(leftPanel)
                         .addComponent(infoPanel)
                         .addComponent(middlePanel)
                         .addComponent(rightPanel)
                 )
+                .addComponent(stepPanel)
                 .addGap(10,25,Short.MAX_VALUE)
         );
     }

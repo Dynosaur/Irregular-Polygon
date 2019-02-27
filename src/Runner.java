@@ -2,6 +2,7 @@ import geometry.Coordinate;
 import geometry.IrregularPolygon;
 import geometry.LineBuilder;
 import gui.GUI;
+import gpdraw.SketchPad;
 
 import java.util.ArrayList;
 
