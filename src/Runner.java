@@ -1,4 +1,7 @@
-import gpdraw.SketchPad;
+import geometry.Coordinate;
+import geometry.IrregularPolygon;
+import geometry.LineBuilder;
+import gui.GUI;
 
 import java.util.ArrayList;
 
@@ -16,13 +19,11 @@ public class Runner {
         list.add(c);
         list.add(d);
         list.add(e);
-        LineBuilder lb = new LineBuilder(true, list);
+        LineBuilder lb = new LineBuilder(false, list);
         IrregularPolygon shape0 = new IrregularPolygon();
         //lb.auto().toArray(new Segment[0])
 
         GUI gui = new GUI(lb);
-
-        //shape0.draw(pen);
     }
 
 }

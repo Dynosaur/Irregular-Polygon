@@ -1,3 +1,5 @@
+package geometry;
+
 /**
  * @author Alejandro Doberenz
  * @version 2/25/2019
@@ -37,10 +39,10 @@ public class Segment implements java.io.Serializable {
     }
     // </editor-fold>
 
-    public void draw(Pen pen) {
+    public void draw(gui.Pen pen) {
         draw(pen, java.awt.Color.BLACK);
     }
-    public void draw(Pen pen, java.awt.Color color) {
+    public void draw(gui.Pen pen, java.awt.Color color) {
         pen.up();
         pen.move(START);
         pen.down();

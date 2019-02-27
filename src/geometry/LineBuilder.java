@@ -1,3 +1,8 @@
+package geometry;
+
+import geometry.Coordinate;
+import geometry.Segment;
+
 import java.util.ArrayList;
 
 /**
@@ -8,7 +13,13 @@ import java.util.ArrayList;
  */
 public class LineBuilder {
 
-    private class Step {
+    public class CannotGoBackException extends Exception {
+        public CannotGoBackException(String message) {
+            super(message);
+        }
+    }
+
+    public class Step {
 
         boolean connectLast;
 
@@ -19,14 +30,29 @@ public class LineBuilder {
 
         Segment lastLine;
 
+        public ArrayList<Coordinate> getAvailableCoordinates() {
+            return availableCoordinates;
+        }
+        public ArrayList<Coordinate> getLastAvailable() {
+            return lastAvailable;
+        }
+        public ArrayList<Segment> getCreatedLines() {
+            return createdLines;
+        }
+        public ArrayList<Step> getSteps() {
+            return steps;
+        }
+        public Segment getLastLine() {
+            return lastLine;
+        }
+
         Step(boolean conLast, ArrayList<Coordinate> ava, ArrayList<Coordinate> last, ArrayList<Segment> lines, ArrayList<Step> lotsOfSteps, Segment laLine) {
             connectLast = conLast;
-            availableCoordinates = ava;
-            lastAvailable = last;
-            createdLines = lines;
-            steps = lotsOfSteps;
+            availableCoordinates = new ArrayList<>(ava);
+            lastAvailable = new ArrayList<>(last);
+            createdLines = new ArrayList<>(lines);
+            steps = new ArrayList<>(lotsOfSteps);
             lastLine = laLine;
-            steps.add(this);
         }
 
     }
@@ -56,6 +82,21 @@ public class LineBuilder {
     public ArrayList<Segment> getCreatedLines() {
         return createdLines;
     }
+    public ArrayList<Step> getSteps() {
+        return steps;
+    }
+
+    public static int findSmallestValue(ArrayList<Double> array) {
+        double smallestValue = array.get(0);
+        int indexOfSmallestValue = 0;
+        for(Double value : array) {
+            if(value < smallestValue) {
+                smallestValue = value;
+                indexOfSmallestValue = array.indexOf(value);
+            }
+        }
+        return indexOfSmallestValue;
+    }
 
     private Segment findNextBestLine() {
         if(verbose) System.out.println("------------------------\n" +
@@ -84,9 +125,9 @@ public class LineBuilder {
             combined.add(angle*hyp.getDistance());
         }
 
-        int indexOfSmallestAngle = Helper.findSmallestValue(angles);
-        int indexOfSmallestDistance = Helper.findSmallestValue(distances);
-        int indexOfSmallestCombined = Helper.findSmallestValue(combined);
+        int indexOfSmallestAngle = findSmallestValue(angles);
+        int indexOfSmallestDistance = findSmallestValue(distances);
+        int indexOfSmallestCombined = findSmallestValue(combined);
 
         Segment suggested = new Segment(start, availableCoordinates.get(indexOfSmallestCombined));
 
@@ -96,34 +137,29 @@ public class LineBuilder {
         "\n\nSuggesting Segment: " + suggested);
 
 
-        System.out.println("------------------------");
+        if(verbose) System.out.println("------------------------");
         return suggested;
     }
 
     public void rollback(Step step) {
         connectLast = step.connectLast;
-        availableCoordinates = step.availableCoordinates;
-        availableCoordinates.add(0,lastLine.getStart());
-        lastAvailable = step.lastAvailable;
-        createdLines = step.createdLines;
-        steps = step.steps;
+        availableCoordinates = new ArrayList<>(step.availableCoordinates);
+        lastAvailable = new ArrayList<>(step.lastAvailable);
+        createdLines = new ArrayList<>(step.createdLines);
+        steps = new ArrayList<>(step.steps);
         availableCoordinates.remove(lastLine.getEnd());
         lastLine = step.lastLine;
     }
 
-    public void back() {
-        System.out.println(steps.size());
-        if(steps.size() == 0) {
-            System.out.println("Cannot go back.");
-            return;
-        }
+    public void back() throws CannotGoBackException {
+        if(steps.size() == 0) throw new CannotGoBackException("Cannot go back.");
         if(verbose) System.out.println("GOING BACK ONE STEP");
         if(verbose) System.out.print("Available Coordinates[" + availableCoordinates.size() +"]: ");
         if(verbose) Helper.print(availableCoordinates.toArray());
         rollback(steps.get(steps.size()-1));
     }
 
-    public void step() {
+    public void step() throws CannotGoBackException {
         // If there are available coordinates, execute a step. Otherwise, reject the input.
         if(availableCoordinates.size() != 0) {
 
@@ -178,19 +214,12 @@ public class LineBuilder {
         } else System.out.println("No more lines can be drawn.");
     }
 
-    public ArrayList<Segment> auto() {
-        while(availableCoordinates.size() != 0)
-            step();
-        System.out.println("Completed.");
-        return createdLines;
-    }
-
     public LineBuilder(boolean verboseMode, ArrayList<Coordinate> coordinateList) {
         if(coordinateList.size() == 0) throw new IllegalArgumentException("Given list contains no coordinates.");
         verbose = verboseMode;
         connectLast = false;
-        originalCoordinates = (ArrayList<Coordinate>) coordinateList.clone();
-        availableCoordinates = coordinateList;
+        originalCoordinates = new ArrayList<>(coordinateList);
+        availableCoordinates = new ArrayList<>(coordinateList);
         originPoint = coordinateList.get(0);
         if(verbose) {
             System.out.print("Original Coordinates[" + availableCoordinates.size() + "]: ");

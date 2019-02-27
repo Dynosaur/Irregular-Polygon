@@ -1,6 +1,12 @@
+package gui;
+
 import gpdraw.SketchPadPanel;
 
 import javax.swing.*;
+
+import geometry.LineBuilder;
+import geometry.Coordinate;
+import geometry.Segment;
 
 public class GUI {
 
@@ -12,12 +18,22 @@ public class GUI {
 
     private LineBuilder lineBuilder;
 
-    private JLabel stepCoordinateLabel;
+    private JLabel stepCoordinateLabel, stepLabel, stepLastCoordinates;
     private JTextArea currentLinesField;
 
     private Pen pen;
 
-    private int step;
+    private int numOfSteps;
+
+    public static String asString(Object[] array) {
+        StringBuilder builder = new StringBuilder();
+        for(int i = 0; i < array.length; i++)
+            if(array.length==1) builder.append("[").append(array[i]).append("]");
+            else if(i == 0) builder.append("[").append(array[i]).append(", ");
+            else if (i == array.length - 1) builder.append(array[i]).append("]");
+            else builder.append(array[i]).append(", ");
+        return builder.toString();
+    }
 
     private void draw() {
         Thread drawThread = new Thread(() -> {
@@ -30,9 +46,17 @@ public class GUI {
     }
 
     private void update() {
+        stepLabel.setText("Steps Completed: " + numOfSteps);
+        if(numOfSteps == 0) {
+            stepLastCoordinates.setText("Step Coordinates: Not Available");
+        } else {
+            LineBuilder.Step lastStep = lineBuilder.getSteps().get(lineBuilder.getSteps().size()-1);
+            stepLastCoordinates.setText("Step Coordinates: " + asString(lastStep.getAvailableCoordinates().toArray()));
+        }
+
         draw();
 
-        stepCoordinateLabel.setText("Available Coordinates: " + Helper.asString(lineBuilder.getAvailableCoordinates().toArray()));
+        stepCoordinateLabel.setText("Available Coordinates: " + asString(lineBuilder.getAvailableCoordinates().toArray()));
 
         StringBuilder currentLinesText = new StringBuilder();
         for(Segment line : lineBuilder.getCreatedLines()) {
@@ -45,15 +69,21 @@ public class GUI {
     }
 
     private void nextButtonClicked() {
-        lineBuilder.step();
+        try {
+            lineBuilder.step();
+            numOfSteps++;
+        } catch(LineBuilder.CannotGoBackException e) {}
         update();
     }
     private void backButtonClicked() {
-        drawPanel = new SketchPadPanel();
-        lineBuilder.back();
+        try {
+            lineBuilder.back();
+            numOfSteps--;
+        } catch(LineBuilder.CannotGoBackException e) {}
         update();
     }
     private void resetButtonClicked() {
+        numOfSteps = 0;
         drawPanel = null;
         drawPanel = new SketchPadPanel();
         lineBuilder = new LineBuilder(lineBuilder.getVerbose(), lineBuilder.getOriginalCoordinates());
@@ -64,15 +94,37 @@ public class GUI {
         leftPanel = new JPanel();
         leftPanel.setBorder(BorderFactory.createLineBorder(new java.awt.Color(0,150,250)));
 
-        JLabel step = new JLabel("Step: " + 0);
+        stepLabel = new JLabel("Steps Completed: " + 0);
+        stepLastCoordinates = new JLabel("Step Coordinates: Not Available");
 
+        GroupLayout layout = new GroupLayout(leftPanel);
+        leftPanel.setLayout(layout);
+
+        layout.setHorizontalGroup(
+            layout.createSequentialGroup()
+                .addGap(10,25,25)
+                .addGroup(
+                    layout.createParallelGroup()
+                        .addComponent(stepLabel)
+                        .addComponent(stepLastCoordinates)
+                )
+                .addGap(10,25,25)
+        );
+        layout.setVerticalGroup(
+            layout.createSequentialGroup()
+                .addGap(10,25,25)
+                .addComponent(stepLabel)
+                .addGap(10)
+                .addComponent(stepLastCoordinates)
+                .addGap(10,25,25)
+        );
     }
     private void infoPanel() {
         infoPanel = new JPanel();
         infoPanel.setBorder(BorderFactory.createLineBorder(new java.awt.Color(0,150,250)));
 
-        JLabel originalCoordinateLabel = new JLabel("Original Coordinates:   " + Helper.asString(lineBuilder.getAvailableCoordinates().toArray()));
-        stepCoordinateLabel = new JLabel("Available Coordinates: " + Helper.asString(lineBuilder.getAvailableCoordinates().toArray()));
+        JLabel originalCoordinateLabel = new JLabel("Original Coordinates:   " + asString(lineBuilder.getAvailableCoordinates().toArray()));
+        stepCoordinateLabel = new JLabel("Available Coordinates: " + asString(lineBuilder.getAvailableCoordinates().toArray()));
         currentLinesField = new JTextArea();
         currentLinesField.setEditable(false);
         currentLinesField.setAutoscrolls(true);
@@ -184,6 +236,8 @@ public class GUI {
         layout.setHorizontalGroup(
             layout.createSequentialGroup()
                 .addGap(10,25,Short.MAX_VALUE)
+                .addComponent(leftPanel)
+                .addGap(10,25,Short.MAX_VALUE)
                 .addComponent(infoPanel)
                 .addGap(10,25,25)
                 .addComponent(middlePanel)
@@ -196,6 +250,7 @@ public class GUI {
                 .addGap(10,25,Short.MAX_VALUE)
                 .addGroup(
                     layout.createParallelGroup(GroupLayout.Alignment.CENTER)
+                        .addComponent(leftPanel)
                         .addComponent(infoPanel)
                         .addComponent(middlePanel)
                         .addComponent(rightPanel)

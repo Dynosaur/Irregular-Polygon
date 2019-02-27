@@ -1,12 +1,10 @@
-import java.awt.Color;
+package geometry;
 
-import java.io.*;
 import java.util.ArrayList;
-import java.util.Scanner;
 
 /**
  * @author Alejandro Doberenz
- * @version 2/19/2019
+ * @version 2/26/2019
  *
  * An irregular polygon is different from a regular polygon (Polygon.java) because it does not have to be
  * equiangular or equilateral. This allows for the insertion of random points and the drawing of segments between
@@ -18,7 +16,7 @@ public class IrregularPolygon extends Polygon implements java.io.Serializable {
 
     public void addCoordinate(Coordinate coordinate) {
         for(Coordinate point : coordinates)
-            if(coordinate.equals(point)) { System.out.println("Coordinate " + coordinate + " is already in Polygon at coordinates[" + coordinates.indexOf(point) + "]."); return; }
+            if(coordinate.equals(point)) { System.out.println(coordinate + " is already in Polygon at coordinates[" + coordinates.indexOf(point) + "]."); return; }
         coordinates.add(coordinate);
     }
 
@@ -30,16 +28,16 @@ public class IrregularPolygon extends Polygon implements java.io.Serializable {
     }
     private void update() {
         if(coordinates.size() == 0)
-            if(lineSegments.size() == 0) throw new NoCoordinatesException("There are no coordinates for this Polygon.");
+            if(lineSegments.size() == 0) throw new Polygon.NoCoordinatesException("There are no coordinates for this Polygon.");
             else for(Segment line : lineSegments) coordinates.add(line.getStart());
         if(lineSegments.size() == 0) createLines();
 
     }
 
-    public void draw(Pen pen) {
+    public void draw(gui.Pen pen) {
         draw(pen, java.awt.Color.BLACK);
     }
-    public void draw(Pen pen, java.awt.Color color) {
+    public void draw(gui.Pen pen, java.awt.Color color) {
         update();
         pen.up();
         pen.move(lineSegments.get(0).getStart());
@@ -52,13 +50,15 @@ public class IrregularPolygon extends Polygon implements java.io.Serializable {
             pen.move(line.getEnd());
         }
     }
-    public void drawPoints(Pen pen) {
+    /*
+    public void drawPoints(gui.Pen pen) {
         Color[] colorWheel = {Color.RED, Color.ORANGE, Color.YELLOW, Color.GREEN, Color.CYAN, Color.BLUE, Color.MAGENTA};
         for(Coordinate point : coordinates) {
             Color newColor = colorWheel[coordinates.indexOf(point) % colorWheel.length];
             point.draw(pen,newColor);
         }
     }
+    */
 
     public double perimeter() {
         update();
@@ -102,74 +102,6 @@ public class IrregularPolygon extends Polygon implements java.io.Serializable {
     public IrregularPolygon(Segment[] lines) {
         lineSegments = new ArrayList<>(java.util.Arrays.asList(lines));
         update();
-    }
-
-    public static void main(String[] args) {
-        /*
-        File data = new File(".settings");
-        if(!data.exists()) {
-            try {
-                PrintWriter writer = new PrintWriter(data);
-                writer.println("serial = 0;");
-                writer.close();
-            } catch(FileNotFoundException x) {}
-        }
-        try {
-            Scanner scanner = new Scanner(data);
-        } catch(FileNotFoundException x) {}
-        */
-        /*
-        // Attempt to load polygon, otherwise create a new one
-        File file = new File("last.polygon");
-        File file2 = new File("polygon/last.polygon");
-        if(file2.exists()) {
-            System.out.println("file2 exists");
-        } else System.out.println("file2 does not exist");
-        PolygonBuilder shape5;
-        try {
-            FileInputStream fi = new FileInputStream(file);
-            ObjectInputStream input = new ObjectInputStream(fi);
-            shape5 = (PolygonBuilder) input.readObject();
-        } catch(Exception ex) {
-            System.err.println(ex);
-            System.err.println("Failed to load polygon.");
-        }
-        */
-
-        /*
-        // Initialize sketchpad and pen
-        int padX = 500;
-        int padY = 500;
-        SketchPad sp = new SketchPad(padX,padY);
-        Pen pen = new Pen(sp);
-
-        // Attempt to load polygon, otherwise create a new one
-        File file = new File("last.polygon");
-        IrregularPolygon shape5;
-        try {
-            FileInputStream fi = new FileInputStream(file);
-            ObjectInputStream input = new ObjectInputStream(fi);
-            shape5 = (IrregularPolygon) input.readObject();
-        } catch(Exception ex) {
-            System.err.println(ex);
-            System.err.println("Failed to load polygon.");
-            shape5 = new IrregularPolygon(generateIrregularPolygon(4));
-        }
-
-        // Serialize
-        try {
-            FileOutputStream fo = new FileOutputStream(file);
-            ObjectOutputStream output = new ObjectOutputStream(fo);
-            output.writeObject(shape5);
-            output.close();
-            fo.close();
-        } catch(Exception e) {}
-
-        shape5.draw(pen, Color.BLACK, Color.BLACK,true);
-        shape5.redrawLines();
-        shape5.draw(pen, Color.RED, randomColor(),true);
-        System.out.println("Complete");
-        */
     }
 
 }

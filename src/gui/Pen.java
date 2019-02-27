@@ -1,7 +1,8 @@
+package gui;
+
+import geometry.Coordinate;
 import gpdraw.SketchPad;
 import gpdraw.SketchPadPanel;
-
-import java.awt.Color;
 
 /**
  * @author Alejandro Doberenz
@@ -16,6 +17,9 @@ public class Pen extends gpdraw.DrawingTool implements java.io.Serializable {
         move(c.getX(), c.getY());
     }
 
+    public Pen() {
+        super();
+    }
     public Pen(SketchPad sp) {
         super(sp);
     }
