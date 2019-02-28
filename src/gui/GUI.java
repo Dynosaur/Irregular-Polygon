@@ -8,22 +8,40 @@ import geometry.LineBuilder;
 import geometry.Coordinate;
 import geometry.Segment;
 
+import java.awt.*;
+import java.awt.event.*;
+
+/**
+ * @author Alejandro Doberenz
+ * @version 2/28/2019
+ *
+ * This is the GUI for the program.
+ */
 public class GUI {
+
+    /*
+        TODO - Add more info to infoPanel
+        TODO - Create origin point changer/selector
+        FIXME - Weird bug when clicking next a bunch and then back a bunch will result in a ArrayIndexOutOfBounds
+        ^ May have to do with step() successfully completing when there are no lines to draw
+     */
 
     private JFrame window;
 
-    private JPanel stepPanel, infoPanel, middlePanel, rightPanel;
+    private JPanel stepPanel, infoPanel, buttonPanel, superDrawPanel;
 
     private SketchPadPanel drawPanel;
 
     private LineBuilder lineBuilder;
 
-    private JLabel stepCoordinateLabel, stepLabel, stepLastCoordinates;
+    private JLabel stepCoordinateLabel, stepLabel, stepLastCoordinates, errorLabel;
     private JTextArea currentLinesField;
 
     private Pen pen;
 
     private int numOfSteps;
+
+    private double mouseX, mouseY;
 
     public static String asString(Object[] array) {
         StringBuilder builder = new StringBuilder();
@@ -38,13 +56,17 @@ public class GUI {
     private void draw() {
         Thread drawThread = new Thread(() -> {
             for(Coordinate coordinate : lineBuilder.getAvailableCoordinates())
-                coordinate.draw(pen);
+                coordinate.draw(pen, Color.BLACK);
             for(Segment line : lineBuilder.getCreatedLines())
                 line.draw(pen);
         });
         drawThread.start();
     }
 
+    private void clearDrawPanel() {
+        pen.setColor(Color.WHITE);
+        drawPanel.fillRect(0,0, drawPanel.getWidth(), drawPanel.getHeight());
+    }
     private void update() {
         stepLabel.setText("Steps Completed: " + numOfSteps);
         if(numOfSteps == 0) {
@@ -64,35 +86,43 @@ public class GUI {
             currentLinesText.append("\n");
         }
         currentLinesField.setText(currentLinesText.toString());
-        currentLinesField.setText("");
 
     }
-
     private void nextButtonClicked() {
-        try {
-            lineBuilder.step();
-            numOfSteps++;
-        } catch(LineBuilder.CannotGoBackException e) {}
+        lineBuilder.step();
+        switch(lineBuilder.getSteps().get(lineBuilder.getSteps().size()-1).getStepResult()) {
+            case SUCCESSFUL:
+                numOfSteps++;
+                break;
+            case FAILED:
+                break;
+        }
         update();
     }
     private void backButtonClicked() {
         try {
             lineBuilder.back();
             numOfSteps--;
-        } catch(LineBuilder.CannotGoBackException e) {}
+            clearDrawPanel();
+        } catch(LineBuilder.CannotGoBackException e) {
+            errorLabel.setText("Cannot go back.");
+        }
         update();
     }
     private void resetButtonClicked() {
+        errorLabel.setText("");
         numOfSteps = 0;
-        drawPanel.getParent().paint(drawPanel.getGraphics());
-        drawPanel.paint(drawPanel.getGraphics());
-        drawPanel = null;
-        drawPanel = new SketchPadPanel();
-        lineBuilder = new LineBuilder(lineBuilder.getVerbose(), lineBuilder.getOriginalCoordinates());
+        clearDrawPanel();
+        lineBuilder = new LineBuilder(lineBuilder.getOriginalCoordinates());
         update();
     }
+    // FIXME - NullPointerException when there is no last line
+    private void flagButtonClicked() {
 
-    private void leftPanel() {
+        lineBuilder.getFlags().add(new LineBuilder.Flag(lineBuilder.getLastLine().getEnd()));
+    }
+
+    private void stepPanel() {
         stepPanel = new JPanel();
         stepPanel.setBorder(BorderFactory.createLineBorder(new java.awt.Color(0,150,250)));
 
@@ -141,7 +171,7 @@ public class GUI {
                 .addGroup(layout.createParallelGroup()
                     .addComponent(originalCoordinateLabel)
                     .addComponent(stepCoordinateLabel)
-                    .addComponent(lineScrollPane, 25, 250, 250)
+                    .addComponent(lineScrollPane, 25, 250, 500)
                 )
                 .addGap(10,25,25)
         );
@@ -156,19 +186,23 @@ public class GUI {
         );
 
     }
-    private void middlePanel() {
-        middlePanel = new JPanel();
-        middlePanel.setBorder(BorderFactory.createLineBorder(new java.awt.Color(0,150,250)));
+    private void buttonPanel() {
+        buttonPanel = new JPanel();
+        buttonPanel.setBorder(BorderFactory.createLineBorder(new java.awt.Color(0,150,250)));
 
         JButton backButton = new JButton("Back");
         JButton nextButton = new JButton("Next");
         JButton resetButton = new JButton("Reset");
+        JButton flagButton = new JButton("Place Flag");
         backButton.addActionListener(e -> backButtonClicked());
         nextButton.addActionListener(e -> nextButtonClicked());
         resetButton.addActionListener(e -> resetButtonClicked());
+        flagButton.addActionListener(e -> flagButtonClicked());
+        errorLabel = new JLabel();
+        errorLabel.setForeground(Color.RED);
 
-        GroupLayout layout = new GroupLayout(middlePanel);
-        middlePanel.setLayout(layout);
+        GroupLayout layout = new GroupLayout(buttonPanel);
+        buttonPanel.setLayout(layout);
 
         layout.setHorizontalGroup(
             layout.createSequentialGroup()
@@ -181,7 +215,13 @@ public class GUI {
                                 .addGap(10)
                                 .addComponent(nextButton)
                         )
-                        .addComponent(resetButton)
+                        .addGroup(
+                            layout.createSequentialGroup()
+                                .addComponent(resetButton)
+                                .addGap(10)
+                                .addComponent(flagButton)
+                        )
+                        .addComponent(errorLabel)
                 )
                 .addGap(10,25,25)
         );
@@ -194,31 +234,42 @@ public class GUI {
                         .addComponent(nextButton)
                 )
                 .addGap(10)
-                .addComponent(resetButton)
+                .addGroup(
+                    layout.createParallelGroup()
+                        .addComponent(resetButton)
+                        .addComponent(flagButton)
+                )
+                .addComponent(errorLabel)
                 .addGap(10,25,25)
         );
     }
-    private void rightPanel() {
-        rightPanel = new JPanel();
-        rightPanel.setBorder(BorderFactory.createLineBorder(new java.awt.Color(0,150,250)));
+    private void drawPanel() {
+        superDrawPanel = new JPanel();
+        superDrawPanel.setBorder(BorderFactory.createLineBorder(new java.awt.Color(0,150,250)));
 
         drawPanel = new SketchPadPanel(0);
-        JScrollPane lineScrollPane = new JScrollPane(drawPanel, ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS, ScrollPaneConstants.HORIZONTAL_SCROLLBAR_ALWAYS);
         pen = new Pen(drawPanel);
 
-        GroupLayout layout = new GroupLayout(rightPanel);
-        rightPanel.setLayout(layout);
+        // TODO - Move this to when selecting the origin point or whenever needed, useless as is right now. But it looks cool.
+        drawPanel.addMouseListener(new MouseAdapter() {
+            public void mousePressed(MouseEvent e) {
+                System.out.println(new Coordinate(-drawPanel.getWidth()/2 + e.getX(), drawPanel.getHeight()/2 - e.getY()));
+            }
+        });
+
+        GroupLayout layout = new GroupLayout(superDrawPanel);
+        superDrawPanel.setLayout(layout);
 
         layout.setHorizontalGroup(
             layout.createSequentialGroup()
                 .addGap(10)
-                .addComponent(lineScrollPane, 100, 200, 300)
+                .addComponent(drawPanel, 100, 200, 300)
                 .addGap(10)
         );
         layout.setVerticalGroup(
             layout.createSequentialGroup()
                 .addGap(10)
-                .addComponent(lineScrollPane, 100, 200, 300)
+                .addComponent(drawPanel, 100, 200, 300)
                 .addGap(10)
         );
     }
@@ -226,10 +277,10 @@ public class GUI {
         window = new JFrame("IrregularPolygon.java");
         window.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
-        leftPanel();
+        stepPanel();
         infoPanel();
-        middlePanel();
-        rightPanel();
+        buttonPanel();
+        drawPanel();
 
         GroupLayout layout = new GroupLayout(window.getContentPane());
         window.getContentPane().setLayout(layout);
@@ -244,9 +295,9 @@ public class GUI {
                             layout.createSequentialGroup()
                                 .addComponent(infoPanel)
                                 .addGap(10,25,25)
-                                .addComponent(middlePanel)
+                                .addComponent(buttonPanel)
                                 .addGap(10,25,25)
-                                .addComponent(rightPanel)
+                                .addComponent(superDrawPanel)
                         )
                     .addComponent(stepPanel)
                 )
@@ -258,9 +309,10 @@ public class GUI {
                 .addGroup(
                     layout.createParallelGroup(GroupLayout.Alignment.CENTER)
                         .addComponent(infoPanel)
-                        .addComponent(middlePanel)
-                        .addComponent(rightPanel)
+                        .addComponent(buttonPanel)
+                        .addComponent(superDrawPanel)
                 )
+                .addGap(10)
                 .addComponent(stepPanel)
                 .addGap(10,25,Short.MAX_VALUE)
         );
@@ -269,7 +321,18 @@ public class GUI {
     public GUI(LineBuilder lb) {
         lineBuilder = lb;
 
-        initComponents();
+        try {
+            for (UIManager.LookAndFeelInfo info : UIManager.getInstalledLookAndFeels())
+                if ("Windows Classic".equals(info.getName())) {
+                    UIManager.setLookAndFeel(info.getClassName());
+                    break;
+                }
+            } catch(ClassNotFoundException | InstantiationException | IllegalAccessException | javax.swing.UnsupportedLookAndFeelException e) {
+                System.err.println("Look and Feel not found.");
+            }
+
+
+            initComponents();
 
         draw();
 

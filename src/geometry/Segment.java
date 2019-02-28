@@ -72,6 +72,7 @@ public class Segment implements java.io.Serializable {
     * @return   If these lines intersect or not
     */
     public boolean doesIntersect(Segment otherLine) {
+        if(START.equals(otherLine.START) && END.equals(otherLine.END)) return true;
         double x = (INTERCEPT - otherLine.INTERCEPT) / (otherLine.SLOPE - SLOPE);
         try {
             Coordinate intersect = new Coordinate(x, getY(x));

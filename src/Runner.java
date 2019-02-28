@@ -20,7 +20,7 @@ public class Runner {
         list.add(c);
         list.add(d);
         list.add(e);
-        LineBuilder lb = new LineBuilder(false, list);
+        LineBuilder lb = new LineBuilder(list);
         IrregularPolygon shape0 = new IrregularPolygon();
         //lb.auto().toArray(new Segment[0])
 
