@@ -43,13 +43,17 @@ public class Polygon {
         if(v < 3 && v > -1 || v < -1) throw new IllegalArgumentException("Not enough vertices.\nRequired: 3\nv: " + v);
         if(d < 0.0D) throw new IllegalArgumentException("Negative distance. d: " + d);
         if(d == 0.0D) throw new IllegalArgumentException("Distance cannot be zero.");
-        if(v == -1) vertices = Helper.random(3,12);
+        if(v == -1) vertices = random(3,12);
         else vertices = v;
         distance = d;
         origin = center;
         coordinates = new ArrayList<>(generatePolygon(vertices, distance, origin));
         for(int i = 0; i < vertices; i++)
             lineSegments.add(new Segment(coordinates.get(i), coordinates.get(i % vertices)));
+    }
+
+    public static int random(int min, int max) {
+        return IrregularPolygon.random(min, max);
     }
 
     /**

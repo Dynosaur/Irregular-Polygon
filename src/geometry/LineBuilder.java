@@ -70,20 +70,27 @@ public class LineBuilder {
 
     private Segment lastLine;
 
-    public boolean getVerbose() {
-        return verbose;
+
+    public LineBuilder(boolean verboseMode, ArrayList<Coordinate> coordinateList) {
+        if(coordinateList.size() == 0) throw new IllegalArgumentException("Given list contains no coordinates.");
+        verbose = verboseMode;
+        connectLast = false;
+        originalCoordinates = new ArrayList<>(coordinateList);
+        availableCoordinates = new ArrayList<>(coordinateList);
+        originPoint = coordinateList.get(0);
+        if(verbose) {
+            System.out.print("Original Coordinates[" + availableCoordinates.size() + "]: ");
+            print(coordinateList.toArray());
+            System.out.println("Origin Point: " + originPoint);
+        }
     }
-    public ArrayList<Coordinate> getOriginalCoordinates() {
-        return originalCoordinates;
-    }
-    public ArrayList<Coordinate> getAvailableCoordinates() {
-        return availableCoordinates;
-    }
-    public ArrayList<Segment> getCreatedLines() {
-        return createdLines;
-    }
-    public ArrayList<Step> getSteps() {
-        return steps;
+
+    public static void print(Object[] array) {
+        for(int i = 0; i < array.length; i++)
+            if(array.length==1) System.out.println("[" + array[i] + "]");
+            else if(i == 0) System.out.print("[" + array[i] + ", ");
+            else if (i == array.length - 1) System.out.println(array[i] + "]");
+            else System.out.print(array[i] + ", ");
     }
 
     public static int findSmallestValue(ArrayList<Double> array) {
@@ -98,6 +105,14 @@ public class LineBuilder {
         return indexOfSmallestValue;
     }
 
+    public static double round(double value, int places) {
+        System.out.println(value);
+        if(places < 0) throw new IllegalArgumentException();
+        java.math.BigDecimal temp = new java.math.BigDecimal(Double.toString(value));
+        temp = temp.setScale(places, java.math.RoundingMode.HALF_UP);
+        return temp.doubleValue();
+    }
+
     private Segment findNextBestLine() {
         if(verbose) System.out.println("------------------------\n" +
         "      BEST SEGMENT");
@@ -106,7 +121,7 @@ public class LineBuilder {
         availableCoordinates.remove(start);
         if(verbose) System.out.print("Starting new line at: " + start + "\n" +
         "Available Coordinates[" + availableCoordinates.size() + "]: ");
-        if(verbose) Helper.print(availableCoordinates.toArray());
+        if(verbose) print(availableCoordinates.toArray());
 
         ArrayList<Double> angles = new ArrayList<>();
         ArrayList<Double> distances = new ArrayList<>();
@@ -131,9 +146,9 @@ public class LineBuilder {
 
         Segment suggested = new Segment(start, availableCoordinates.get(indexOfSmallestCombined));
 
-        if(verbose) System.out.println("Smallest Angle: " + availableCoordinates.get(indexOfSmallestAngle) + ", angle of " + Helper.round(angles.get(indexOfSmallestAngle),3) +
-        "\nSmallest Distance: " + availableCoordinates.get(indexOfSmallestDistance) + ", distance of " + Helper.round(distances.get(indexOfSmallestDistance),3) +
-        "\nSmallest Combined Distance: " + availableCoordinates.get(indexOfSmallestCombined) + ", combined distance of " + Helper.round(combined.get(indexOfSmallestCombined),3) +
+        if(verbose) System.out.println("Smallest Angle: " + availableCoordinates.get(indexOfSmallestAngle) + ", angle of " + round(angles.get(indexOfSmallestAngle),3) +
+        "\nSmallest Distance: " + availableCoordinates.get(indexOfSmallestDistance) + ", distance of " + round(distances.get(indexOfSmallestDistance),3) +
+        "\nSmallest Combined Distance: " + availableCoordinates.get(indexOfSmallestCombined) + ", combined distance of " + round(combined.get(indexOfSmallestCombined),3) +
         "\n\nSuggesting Segment: " + suggested);
 
 
@@ -155,7 +170,7 @@ public class LineBuilder {
         if(steps.size() == 0) throw new CannotGoBackException("Cannot go back.");
         if(verbose) System.out.println("GOING BACK ONE STEP");
         if(verbose) System.out.print("Available Coordinates[" + availableCoordinates.size() +"]: ");
-        if(verbose) Helper.print(availableCoordinates.toArray());
+        if(verbose) print(availableCoordinates.toArray());
         rollback(steps.get(steps.size()-1));
     }
 
@@ -179,7 +194,7 @@ public class LineBuilder {
             steps.add(thisStep);
 
             if(verbose) System.out.print("Available Coordinates[" + availableCoordinates.size() +"]: ");
-            if(verbose) Helper.print(availableCoordinates.toArray());
+            if(verbose) print(availableCoordinates.toArray());
 
             Segment candidate = findNextBestLine();
 
@@ -209,23 +224,25 @@ public class LineBuilder {
 
             if(verbose) {
                 System.out.print("Current lines[" + createdLines.size() + "]: ");
-                Helper.print(createdLines.toArray());
+                print(createdLines.toArray());
             }
         } else System.out.println("No more lines can be drawn.");
     }
 
-    public LineBuilder(boolean verboseMode, ArrayList<Coordinate> coordinateList) {
-        if(coordinateList.size() == 0) throw new IllegalArgumentException("Given list contains no coordinates.");
-        verbose = verboseMode;
-        connectLast = false;
-        originalCoordinates = new ArrayList<>(coordinateList);
-        availableCoordinates = new ArrayList<>(coordinateList);
-        originPoint = coordinateList.get(0);
-        if(verbose) {
-            System.out.print("Original Coordinates[" + availableCoordinates.size() + "]: ");
-            Helper.print(coordinateList.toArray());
-            System.out.println("Origin Point: " + originPoint);
-        }
+    public boolean getVerbose() {
+        return verbose;
+    }
+    public ArrayList<Coordinate> getOriginalCoordinates() {
+        return originalCoordinates;
+    }
+    public ArrayList<Coordinate> getAvailableCoordinates() {
+        return availableCoordinates;
+    }
+    public ArrayList<Segment> getCreatedLines() {
+        return createdLines;
+    }
+    public ArrayList<Step> getSteps() {
+        return steps;
     }
 
 }

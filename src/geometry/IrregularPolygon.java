@@ -81,12 +81,12 @@ public class IrregularPolygon extends Polygon implements java.io.Serializable {
         int maxWidth = 250;
         int minWidth = -250;
 
-        if(vertices == -1) vertices = Helper.random(3, 10);
+        if(vertices == -1) vertices = random(3, 10);
 
         ArrayList<Coordinate> coordinateList = new ArrayList<>();
 
         for(int i = 0; i < vertices; i++)
-            coordinateList.add(new Coordinate(Helper.random(minLength, maxLength), Helper.random(minWidth, maxWidth)));
+            coordinateList.add(new Coordinate(random(minLength, maxLength), random(minWidth, maxWidth)));
 
         return coordinateList;
     }
