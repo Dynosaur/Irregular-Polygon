@@ -20,23 +20,6 @@ public class LineBuilder {
         TODO - Create Flag class
      */
 
-    public enum StepResult {
-
-        SUCCESSFUL(true),
-        FAILED(false);
-
-        private boolean worked;
-
-        StepResult(boolean b) {
-            worked = b;
-        }
-
-        public boolean getResult() {
-            return worked;
-        }
-
-    }
-
     public class CannotGoBackException extends Exception {
         public CannotGoBackException(String message) {
             super(message);
@@ -44,6 +27,14 @@ public class LineBuilder {
     }
 
     static public class Step {
+
+        public enum StepResult {
+
+            SUCCESSFUL,
+            FAILED,
+            NOMORELINES
+
+        }
 
         boolean connectLast;
 
@@ -57,7 +48,11 @@ public class LineBuilder {
 
         StepResult stepResult;
 
-        Step(LineBuilder lnBldr) {
+        Step(LineBuilder lnBldr, StepResult result) {
+            this(lnBldr);
+            setStepResult(result);
+        }
+        public Step(LineBuilder lnBldr) {
             connectLast = lnBldr.connectLast;
             availableCoordinates = new ArrayList<>(lnBldr.availableCoordinates);
             lastAvailable = new ArrayList<>(lnBldr.lastAvailable);
@@ -187,47 +182,58 @@ public class LineBuilder {
 
             lastAvailable = new ArrayList<>(availableCoordinates);
 
+            // Create step point to go back to
+            Step thisStep = new Step(this);
+            steps.add(thisStep);
+
+            for(Flag flag : flagList) {
+                availableCoordinates.remove(flag.coordinate);
+            }
+
             // If there is only one coordinate left to be connected, add the starting point back.
             if(availableCoordinates.size() == 1) {
                 availableCoordinates.add(originPoint);
                 connectLast = true;
             }
 
-            // Create step point to go back to
-            Step thisStep = new Step(this);
-            steps.add(thisStep);
-
             // Find the next best line
-            Segment candidate = findNextBestLine();
+            Segment candidate = findNextBestLine(availableCoordinates);
 
             // Check if the suggested line intersects any other lines.
             for(Segment line : createdLines)
                 // If it does intersect, add back the starting point and remove the end point as to stop it from choosing this line again, then exit.
                 if(candidate.doesIntersect(line)) {
-                    Flag flag = new Flag(candidate.intersect(line));
-                    flagList.add(flag);
-                    thisStep.setStepResult(StepResult.FAILED);
+                    thisStep.setStepResult(Step.StepResult.FAILED);
                     return;
                 }
-
+            for(Flag flag : flagList) {
+                if(candidate.getStart().equals(flag.coordinate) || candidate.getEnd().equals(flag.coordinate)) {
+                    thisStep.setStepResult(Step.StepResult.FAILED);
+                    return;
+                }
+            }
             // If valid line, add it to createdLines, make it the lastLine, and make the end point of the line the starting point of the list.
             lastLine = candidate;
             createdLines.add(candidate);
             availableCoordinates.remove(candidate.getStart());
             availableCoordinates.remove(candidate.getEnd());
             availableCoordinates.add(0,candidate.getEnd());
-            thisStep.setStepResult(StepResult.SUCCESSFUL);
+            flagList = new ArrayList<>();
+            thisStep.setStepResult(Step.StepResult.SUCCESSFUL);
 
             // If this step was the last step
             if(connectLast) {
                 availableCoordinates.remove(originPoint);
             }
 
-        } else System.out.println("No more lines can be drawn.");
+        } else {
+            Step thisStep = new Step(this, Step.StepResult.NOMORELINES);
+            steps.add(thisStep);
+        }
     }
 
-    private Segment findNextBestLine() {
-        ArrayList<Coordinate> hand = new ArrayList<>(availableCoordinates);
+    private Segment findNextBestLine(ArrayList<Coordinate> available) {
+        ArrayList<Coordinate> hand = new ArrayList<>(available);
 
         Coordinate start = hand.get(0);
         hand.remove(start);
@@ -240,7 +246,7 @@ public class LineBuilder {
             Segment adj = new Segment(start, rightAngle);
             double angle = Math.toDegrees(Math.acos(adj.getDistance() / hyp.getDistance()));
 
-            combined.add(angle*hyp.getDistance());
+            combined.add(angle+hyp.getDistance());
         }
 
         int indexOfSmallestCombined = findSmallestValue(combined);

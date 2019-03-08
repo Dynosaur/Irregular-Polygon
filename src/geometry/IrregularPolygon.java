@@ -50,15 +50,6 @@ public class IrregularPolygon extends Polygon implements java.io.Serializable {
             pen.move(line.getEnd());
         }
     }
-    /*
-    public void drawPoints(gui.Pen pen) {
-        Color[] colorWheel = {Color.RED, Color.ORANGE, Color.YELLOW, Color.GREEN, Color.CYAN, Color.BLUE, Color.MAGENTA};
-        for(Coordinate point : coordinates) {
-            Color newColor = colorWheel[coordinates.indexOf(point) % colorWheel.length];
-            point.draw(pen,newColor);
-        }
-    }
-    */
 
     public double perimeter() {
         update();
@@ -76,10 +67,10 @@ public class IrregularPolygon extends Polygon implements java.io.Serializable {
             throw new IllegalArgumentException("Vertices cannot be less than -1.");
         if(vertices > -1 && vertices < 3)
             throw new IllegalArgumentException("Need at least 3 vertices to be a polygon.");
-        int maxLength = 250;
-        int minLength = -250;
-        int maxWidth = 250;
-        int minWidth = -250;
+        int maxLength = 100;
+        int minLength = -100;
+        int maxWidth = 100;
+        int minWidth = -100;
 
         if(vertices == -1) vertices = random(3, 10);
 

@@ -14,6 +14,7 @@ public class Runner {
         Coordinate c = new Coordinate(10,33);
         Coordinate d = new Coordinate(78, -39);
         Coordinate e = new Coordinate(-18, -49);
+        //ArrayList<Coordinate> list = new ArrayList<>(IrregularPolygon.generateIrregularPolygon(4));
         ArrayList<Coordinate> list = new ArrayList<>();
         list.add(a);
         list.add(b);

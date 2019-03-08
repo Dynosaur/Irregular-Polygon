@@ -13,29 +13,37 @@ import java.awt.event.*;
 
 /**
  * @author Alejandro Doberenz
- * @version 2/28/2019
+ * @version 3/7/2019
  *
- * This is the GUI for the program.
+ * This is the GUI for the program. It can display all the current lines drawn, original given coordinates, available
+ * coordinates, and place flags for the editor.
  */
 public class GUI {
 
     /*
-        TODO - Add more info to infoPanel
         TODO - Create origin point changer/selector
-        FIXME - Weird bug when clicking next a bunch and then back a bunch will result in a ArrayIndexOutOfBounds
-        ^ May have to do with step() successfully completing when there are no lines to draw
+        TODO - Find out how to refresh JTables, they won't change after data is changed
      */
+
+    private Color lightBlue = new Color(0, 150, 250);
+    private Color lightGreen = new Color(100, 200, 0);
+    private String[] coordinateColumnNames = {"X", "Y"};
+    private String[] lineColumnNames = {"Start X", "Start Y", "End X", "End Y"};
 
     private JFrame window;
 
-    private JPanel stepPanel, infoPanel, buttonPanel, superDrawPanel;
+    private JTabbedPane panelSwitcher;
+
+    private JPanel stepPanel, infoPanel, buttonPanel, superDrawPanel, flagPanel;
+
+    private JTable availableCoordinatesTable, currentLinesTable, lastStepAvailableCoordinatesTable;
 
     private SketchPadPanel drawPanel;
 
     private LineBuilder lineBuilder;
 
-    private JLabel stepCoordinateLabel, stepLabel, stepLastCoordinates, errorLabel;
-    private JTextArea currentLinesField;
+    private JLabel stepLabel, stepLastCoordinates, errorLabel, flagHelpLabel;
+
 
     private Pen pen;
 
@@ -45,9 +53,9 @@ public class GUI {
 
     public static String asString(Object[] array) {
         StringBuilder builder = new StringBuilder();
-        for(int i = 0; i < array.length; i++)
-            if(array.length==1) builder.append("[").append(array[i]).append("]");
-            else if(i == 0) builder.append("[").append(array[i]).append(", ");
+        for (int i = 0; i < array.length; i++)
+            if (array.length == 1) builder.append("[").append(array[i]).append("]");
+            else if (i == 0) builder.append("[").append(array[i]).append(", ");
             else if (i == array.length - 1) builder.append(array[i]).append("]");
             else builder.append(array[i]).append(", ");
         return builder.toString();
@@ -55,149 +63,253 @@ public class GUI {
 
     private void draw() {
         Thread drawThread = new Thread(() -> {
-            for(Coordinate coordinate : lineBuilder.getAvailableCoordinates())
+            for (Coordinate coordinate : lineBuilder.getAvailableCoordinates())
                 coordinate.draw(pen, Color.BLACK);
-            for(Segment line : lineBuilder.getCreatedLines())
+            for (Segment line : lineBuilder.getCreatedLines())
                 line.draw(pen);
+            for (LineBuilder.Flag flag : lineBuilder.getFlags()) {
+                flag.getCoordinate().draw(pen, Color.RED);
+            }
         });
         drawThread.start();
     }
 
+    private void onChange() {
+        errorLabel.setText("");
+        flagHelpLabel.setText("");
+    }
+
     private void clearDrawPanel() {
         pen.setColor(Color.WHITE);
-        drawPanel.fillRect(0,0, drawPanel.getWidth(), drawPanel.getHeight());
+        drawPanel.fillRect(0, 0, drawPanel.getWidth(), drawPanel.getHeight());
     }
+
     private void update() {
         stepLabel.setText("Steps Completed: " + numOfSteps);
-        if(numOfSteps == 0) {
+        if (numOfSteps == 0) {
             stepLastCoordinates.setText("Step Coordinates: Not Available");
         } else {
-            LineBuilder.Step lastStep = lineBuilder.getSteps().get(lineBuilder.getSteps().size()-1);
-            stepLastCoordinates.setText("Step Coordinates: " + asString(lastStep.getAvailableCoordinates().toArray()));
+            LineBuilder.Step lastStep = lineBuilder.getSteps().get(lineBuilder.getSteps().size() - 1);
+            stepLastCoordinates.setText("Step Coordinates: " + lastStep.getAvailableCoordinates());
         }
 
         draw();
 
-        stepCoordinateLabel.setText("Available Coordinates: " + asString(lineBuilder.getAvailableCoordinates().toArray()));
 
-        StringBuilder currentLinesText = new StringBuilder();
-        for(Segment line : lineBuilder.getCreatedLines()) {
-            currentLinesText.append(line);
-            currentLinesText.append("\n");
-        }
-        currentLinesField.setText(currentLinesText.toString());
+        availableCoordinatesTable = new JTable(formatCoordinatesForTable(lineBuilder.getAvailableCoordinates()), coordinateColumnNames);
+        currentLinesTable = new JTable(formatLinesForTable(lineBuilder.getCreatedLines()), lineColumnNames);
 
     }
+
     private void nextButtonClicked() {
+        onChange();
         lineBuilder.step();
-        switch(lineBuilder.getSteps().get(lineBuilder.getSteps().size()-1).getStepResult()) {
+        switch (lineBuilder.getSteps().get(lineBuilder.getSteps().size() - 1).getStepResult()) {
             case SUCCESSFUL:
                 numOfSteps++;
                 break;
             case FAILED:
+                lineBuilder.getSteps().remove(lineBuilder.getSteps().size() - 1);
+                break;
+            case NOMORELINES:
+                errorLabel.setText("No more lines can be drawn.");
+                lineBuilder.getSteps().remove(lineBuilder.getSteps().size() - 1);
                 break;
         }
         update();
     }
+
     private void backButtonClicked() {
+        onChange();
         try {
             lineBuilder.back();
             numOfSteps--;
             clearDrawPanel();
-        } catch(LineBuilder.CannotGoBackException e) {
+        } catch (LineBuilder.CannotGoBackException e) {
             errorLabel.setText("Cannot go back.");
         }
         update();
     }
+
     private void resetButtonClicked() {
-        errorLabel.setText("");
+        onChange();
         numOfSteps = 0;
         clearDrawPanel();
         lineBuilder = new LineBuilder(lineBuilder.getOriginalCoordinates());
         update();
     }
-    // FIXME - NullPointerException when there is no last line
-    private void flagButtonClicked() {
 
-        lineBuilder.getFlags().add(new LineBuilder.Flag(lineBuilder.getLastLine().getEnd()));
+    private void flagButtonClicked() {
+        flagHelpLabel.setText("Pick a point on the graph to flag.");
+        flagHelpLabel.setForeground(lightBlue);
+        MouseAdapter mouse = new MouseAdapter() {
+            public void mousePressed(MouseEvent e) {
+                Coordinate coordinate = new Coordinate(e.getX() - drawPanel.getWidth() / 2.0D, -e.getY() + drawPanel.getHeight() / 2.0D);
+                for (Coordinate panelCoordinate : lineBuilder.getAvailableCoordinates()) {
+                    if (coordinate.distance(panelCoordinate) < 5) {
+                        lineBuilder.getFlags().add(new LineBuilder.Flag(panelCoordinate));
+                        flagHelpLabel.setText("Added Flag at " + panelCoordinate);
+                        flagHelpLabel.setForeground(lightGreen);
+                        draw();
+                        drawPanel.removeMouseListener(this);
+                        return;
+                    }
+                }
+                flagHelpLabel.setText("No point selected, please try again.");
+                flagHelpLabel.setForeground(Color.RED);
+            }
+        };
+        drawPanel.addMouseListener(mouse);
+    }
+
+    private Object[][] formatCoordinatesForTable(java.util.ArrayList<Coordinate> coordinateList) {
+        Object[][] coordinateArray = new Object[coordinateList.size()][2];
+        for (int i = 0; i < coordinateList.size(); i++) {
+            coordinateArray[i][0] = coordinateList.get(i).getX();
+            coordinateArray[i][1] = coordinateList.get(i).getY();
+        }
+        return coordinateArray;
+    }
+
+    private Object[][] formatLinesForTable(java.util.ArrayList<Segment> lineList) {
+        Object[][] lineArray = new Object[lineList.size()][4];
+        for (int i = 0; i < lineList.size(); i++) {
+            lineArray[i][0] = lineList.get(i).getStart().getX();
+            lineArray[i][1] = lineList.get(i).getStart().getY();
+            lineArray[i][2] = lineList.get(i).getEnd().getX();
+            lineArray[i][3] = lineList.get(i).getEnd().getY();
+        }
+        return lineArray;
+    }
+
+    private void tabbedPane() {
+        panelSwitcher = new JTabbedPane();
+        panelSwitcher.addTab("Info", infoPanel);
+        panelSwitcher.addTab("Step", stepPanel);
     }
 
     private void stepPanel() {
         stepPanel = new JPanel();
-        stepPanel.setBorder(BorderFactory.createLineBorder(new java.awt.Color(0,150,250)));
+        stepPanel.setBorder(BorderFactory.createTitledBorder("Previous Steps"));
 
         stepLabel = new JLabel("Steps Completed: " + 0);
         stepLastCoordinates = new JLabel("Step Coordinates: Not Available");
+
+        // Set up table and scroll pane for last step available coordinates
+        JLabel lastStepTitle = new JLabel("Last Step's Available Coordinates");
+        try {
+            lastStepAvailableCoordinatesTable = new JTable(formatCoordinatesForTable(lineBuilder.getSteps().get(lineBuilder.getSteps().size() - 1).getAvailableCoordinates()), coordinateColumnNames);
+        } catch(ArrayIndexOutOfBoundsException e) {
+            lastStepAvailableCoordinatesTable = new JTable(formatCoordinatesForTable(lineBuilder.getAvailableCoordinates()), coordinateColumnNames);
+        }
+        lastStepAvailableCoordinatesTable.setFillsViewportHeight(true);
+        JScrollPane lastStepAvailableCoordinatesTableScrollPane = new JScrollPane(lastStepAvailableCoordinatesTable);
 
         GroupLayout layout = new GroupLayout(stepPanel);
         stepPanel.setLayout(layout);
 
         layout.setHorizontalGroup(
-            layout.createSequentialGroup()
-                .addGap(10,25,25)
-                .addGroup(
-                    layout.createParallelGroup()
-                        .addComponent(stepLabel)
-                        .addComponent(stepLastCoordinates)
-                )
-                .addGap(10,25,25)
+                layout.createSequentialGroup()
+                        .addGap(10)
+                        .addGroup(
+                            layout.createParallelGroup()
+                                .addComponent(stepLabel)
+                                .addComponent(lastStepAvailableCoordinatesTableScrollPane, 50, 100, 100)
+                        )
+                        .addGap(10)
         );
         layout.setVerticalGroup(
-            layout.createSequentialGroup()
-                .addGap(10,25,25)
-                .addComponent(stepLabel)
-                .addGap(10)
-                .addComponent(stepLastCoordinates)
-                .addGap(10,25,25)
+                layout.createSequentialGroup()
+                        .addGap(10)
+                        .addComponent(stepLabel)
+                        .addComponent(lastStepAvailableCoordinatesTableScrollPane, 100, 100, 100)
+                        .addGap(10)
         );
     }
+
     private void infoPanel() {
         infoPanel = new JPanel();
-        infoPanel.setBorder(BorderFactory.createLineBorder(new java.awt.Color(0,150,250)));
+        infoPanel.setBorder(BorderFactory.createTitledBorder("Information"));
 
-        JLabel originalCoordinateLabel = new JLabel("Original Coordinates:   " + asString(lineBuilder.getAvailableCoordinates().toArray()));
-        stepCoordinateLabel = new JLabel("Available Coordinates: " + asString(lineBuilder.getAvailableCoordinates().toArray()));
-        currentLinesField = new JTextArea();
-        currentLinesField.setEditable(false);
-        currentLinesField.setAutoscrolls(true);
-        JScrollPane lineScrollPane = new JScrollPane(currentLinesField, ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED, ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+        // Set up table and scroll pane for original coordinates
+        JLabel originCoordTitle = new JLabel("Original Coordinates");
+        JTable originalCoordinatesTable = new JTable(formatCoordinatesForTable(lineBuilder.getOriginalCoordinates()), coordinateColumnNames);
+        originalCoordinatesTable.setFillsViewportHeight(true);
+        JScrollPane originalCoordinatesTableScrollPane = new JScrollPane(originalCoordinatesTable);
+
+        // Set up table and scroll pane for available coordinates
+        JLabel availableCoordTitle = new JLabel("Available Coordinates");
+        availableCoordinatesTable = new JTable(formatCoordinatesForTable(lineBuilder.getAvailableCoordinates()), coordinateColumnNames);
+        availableCoordinatesTable.setFillsViewportHeight(true);
+        JScrollPane availableCoordinatesTableScrollPane = new JScrollPane(availableCoordinatesTable);
+
+        // Set up table and scroll pane for current lines
+        JLabel currentLinesTitle = new JLabel("Current Lines");
+        currentLinesTable = new JTable(formatLinesForTable(lineBuilder.getCreatedLines()), lineColumnNames);
+        currentLinesTable.setFillsViewportHeight(true);
+        JScrollPane currentLinesTableScrollPane = new JScrollPane(currentLinesTable);
 
         GroupLayout layout = new GroupLayout(infoPanel);
         infoPanel.setLayout(layout);
 
         layout.setHorizontalGroup(
-            layout.createSequentialGroup()
-                .addGap(10,25,25)
-                .addGroup(layout.createParallelGroup()
-                    .addComponent(originalCoordinateLabel)
-                    .addComponent(stepCoordinateLabel)
-                    .addComponent(lineScrollPane, 25, 250, 500)
-                )
-                .addGap(10,25,25)
+                layout.createSequentialGroup()
+                        .addGap(10)
+                        .addGroup(
+                                layout.createParallelGroup(GroupLayout.Alignment.CENTER)
+                                        .addComponent(originCoordTitle)
+                                        .addComponent(originalCoordinatesTableScrollPane, 50, 100, 100)
+                        )
+                        .addGap(10)
+                        .addGroup(
+                                layout.createParallelGroup(GroupLayout.Alignment.CENTER)
+                                        .addComponent(availableCoordTitle)
+                                        .addComponent(availableCoordinatesTableScrollPane, 50, 100, 100)
+                        )
+                        .addGap(10)
+                        .addGroup(
+                                layout.createParallelGroup(GroupLayout.Alignment.CENTER)
+                                        .addComponent(currentLinesTitle)
+                                        .addComponent(currentLinesTableScrollPane, 100, 200, 200)
+                        )
+                        .addGap(10)
         );
         layout.setVerticalGroup(
-            layout.createSequentialGroup()
-                .addGap(10,25,25)
-                .addComponent(originalCoordinateLabel)
-                .addComponent(stepCoordinateLabel)
-                .addGap(10)
-                .addComponent(lineScrollPane, 50, 50, 100)
-                .addGap(10,25,25)
+                layout.createSequentialGroup()
+                        .addGap(10)
+                        .addGroup(
+                                layout.createParallelGroup()
+                                        .addGroup(
+                                                layout.createSequentialGroup()
+                                                        .addComponent(originCoordTitle)
+                                                        .addComponent(originalCoordinatesTableScrollPane, 100, 100, 100)
+                                        )
+                                        .addGroup(
+                                                layout.createSequentialGroup()
+                                                        .addComponent(availableCoordTitle)
+                                                        .addComponent(availableCoordinatesTableScrollPane, 100, 100, 100)
+                                        )
+                                        .addGroup(
+                                                layout.createSequentialGroup()
+                                                        .addComponent(currentLinesTitle)
+                                                        .addComponent(currentLinesTableScrollPane, 100, 100, 100)
+                                        )
+                        )
+                        .addGap(10)
         );
 
     }
+
     private void buttonPanel() {
         buttonPanel = new JPanel();
-        buttonPanel.setBorder(BorderFactory.createLineBorder(new java.awt.Color(0,150,250)));
+        buttonPanel.setBorder(BorderFactory.createLineBorder(lightBlue));
 
         JButton backButton = new JButton("Back");
         JButton nextButton = new JButton("Next");
         JButton resetButton = new JButton("Reset");
-        JButton flagButton = new JButton("Place Flag");
         backButton.addActionListener(e -> backButtonClicked());
         nextButton.addActionListener(e -> nextButtonClicked());
         resetButton.addActionListener(e -> resetButtonClicked());
-        flagButton.addActionListener(e -> flagButtonClicked());
         errorLabel = new JLabel();
         errorLabel.setForeground(Color.RED);
 
@@ -205,74 +317,94 @@ public class GUI {
         buttonPanel.setLayout(layout);
 
         layout.setHorizontalGroup(
-            layout.createSequentialGroup()
-                .addGap(10,25,25)
-                .addGroup(
-                    layout.createParallelGroup(GroupLayout.Alignment.CENTER)
+                layout.createSequentialGroup()
+                        .addGap(10, 25, 25)
                         .addGroup(
-                            layout.createSequentialGroup()
-                                .addComponent(backButton)
-                                .addGap(10)
-                                .addComponent(nextButton)
+                                layout.createParallelGroup(GroupLayout.Alignment.CENTER)
+                                        .addGroup(
+                                                layout.createSequentialGroup()
+                                                        .addComponent(backButton)
+                                                        .addGap(10)
+                                                        .addComponent(nextButton)
+                                        )
+                                        .addComponent(resetButton)
+                                        .addComponent(errorLabel)
                         )
-                        .addGroup(
-                            layout.createSequentialGroup()
-                                .addComponent(resetButton)
-                                .addGap(10)
-                                .addComponent(flagButton)
-                        )
-                        .addComponent(errorLabel)
-                )
-                .addGap(10,25,25)
+                        .addGap(10, 25, 25)
         );
         layout.setVerticalGroup(
-            layout.createSequentialGroup()
-                .addGap(10,25,25)
-                .addGroup(
-                    layout.createParallelGroup()
-                        .addComponent(backButton)
-                        .addComponent(nextButton)
-                )
-                .addGap(10)
-                .addGroup(
-                    layout.createParallelGroup()
+                layout.createSequentialGroup()
+                        .addGap(10, 25, 25)
+                        .addGroup(
+                                layout.createParallelGroup()
+                                        .addComponent(backButton)
+                                        .addComponent(nextButton)
+                        )
+                        .addGap(10)
                         .addComponent(resetButton)
-                        .addComponent(flagButton)
-                )
-                .addComponent(errorLabel)
-                .addGap(10,25,25)
+                        .addGap(10)
+                        .addComponent(errorLabel)
+                        .addGap(10, 25, 25)
         );
     }
+
     private void drawPanel() {
         superDrawPanel = new JPanel();
-        superDrawPanel.setBorder(BorderFactory.createLineBorder(new java.awt.Color(0,150,250)));
+        superDrawPanel.setBorder(BorderFactory.createLineBorder(lightBlue));
 
         drawPanel = new SketchPadPanel(0);
         pen = new Pen(drawPanel);
 
-        // TODO - Move this to when selecting the origin point or whenever needed, useless as is right now. But it looks cool.
-        drawPanel.addMouseListener(new MouseAdapter() {
-            public void mousePressed(MouseEvent e) {
-                System.out.println(new Coordinate(-drawPanel.getWidth()/2 + e.getX(), drawPanel.getHeight()/2 - e.getY()));
-            }
-        });
+        flagHelpLabel = new JLabel();
 
         GroupLayout layout = new GroupLayout(superDrawPanel);
         superDrawPanel.setLayout(layout);
 
         layout.setHorizontalGroup(
-            layout.createSequentialGroup()
-                .addGap(10)
-                .addComponent(drawPanel, 100, 200, 300)
-                .addGap(10)
+                layout.createSequentialGroup()
+                        .addGap(10)
+                        .addGroup(
+                                layout.createParallelGroup(GroupLayout.Alignment.CENTER)
+                                        .addComponent(drawPanel, 100, 200, 300)
+                                        .addComponent(flagHelpLabel)
+                        )
+                        .addGap(10)
         );
         layout.setVerticalGroup(
-            layout.createSequentialGroup()
-                .addGap(10)
-                .addComponent(drawPanel, 100, 200, 300)
-                .addGap(10)
+                layout.createSequentialGroup()
+                        .addGap(10)
+                        .addComponent(drawPanel, 100, 200, 300)
+                        .addGap(10)
+                        .addComponent(flagHelpLabel)
+                        .addGap(10)
         );
     }
+
+    private void flagPanel() {
+        flagPanel = new JPanel();
+        flagPanel.setBorder(BorderFactory.createLineBorder(lightBlue));
+
+        JButton flagButton = new JButton("Place Flag");
+        flagButton.addActionListener(e -> flagButtonClicked());
+
+        GroupLayout layout = new GroupLayout(flagPanel);
+        flagPanel.setLayout(layout);
+
+        layout.setHorizontalGroup(
+                layout.createSequentialGroup()
+                        .addGap(10)
+                        .addComponent(flagButton)
+                        .addGap(10)
+        );
+        layout.setVerticalGroup(
+                layout.createSequentialGroup()
+                        .addGap(10)
+                        .addComponent(flagButton)
+                        .addGap(10)
+        );
+
+    }
+
     private void initComponents() {
         window = new JFrame("IrregularPolygon.java");
         window.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -281,40 +413,41 @@ public class GUI {
         infoPanel();
         buttonPanel();
         drawPanel();
+        flagPanel();
+        tabbedPane();
 
         GroupLayout layout = new GroupLayout(window.getContentPane());
         window.getContentPane().setLayout(layout);
 
         layout.setAutoCreateContainerGaps(true);
         layout.setHorizontalGroup(
-            layout.createSequentialGroup()
-                .addGap(10,25,Short.MAX_VALUE)
-                .addGroup(
-                    layout.createParallelGroup(GroupLayout.Alignment.CENTER)
+                layout.createSequentialGroup()
+                        .addGap(5, 25, Short.MAX_VALUE)
+                        .addComponent(panelSwitcher)
+                        .addGap(5, 25, 25)
                         .addGroup(
-                            layout.createSequentialGroup()
-                                .addComponent(infoPanel)
-                                .addGap(10,25,25)
+                            layout.createParallelGroup(GroupLayout.Alignment.CENTER)
                                 .addComponent(buttonPanel)
-                                .addGap(10,25,25)
-                                .addComponent(superDrawPanel)
+                                .addComponent(flagPanel)
                         )
-                    .addComponent(stepPanel)
-                )
-                .addGap(10,25,Short.MAX_VALUE)
+                        .addGap(5, 25, 25)
+                        .addComponent(superDrawPanel)
+                        .addGap(5, 25, Short.MAX_VALUE)
         );
         layout.setVerticalGroup(
-            layout.createSequentialGroup()
-                .addGap(10,25,Short.MAX_VALUE)
-                .addGroup(
-                    layout.createParallelGroup(GroupLayout.Alignment.CENTER)
-                        .addComponent(infoPanel)
-                        .addComponent(buttonPanel)
-                        .addComponent(superDrawPanel)
-                )
-                .addGap(10)
-                .addComponent(stepPanel)
-                .addGap(10,25,Short.MAX_VALUE)
+                layout.createSequentialGroup()
+                        .addGap(10, 25, Short.MAX_VALUE)
+                        .addGroup(
+                                layout.createParallelGroup(GroupLayout.Alignment.CENTER)
+                                        .addComponent(panelSwitcher)
+                                        .addGroup(
+                                            layout.createSequentialGroup()
+                                                .addComponent(buttonPanel)
+                                                .addComponent(flagPanel)
+                                        )
+                                        .addComponent(superDrawPanel)
+                        )
+                        .addGap(10, 25, Short.MAX_VALUE)
         );
     }
 
@@ -327,12 +460,11 @@ public class GUI {
                     UIManager.setLookAndFeel(info.getClassName());
                     break;
                 }
-            } catch(ClassNotFoundException | InstantiationException | IllegalAccessException | javax.swing.UnsupportedLookAndFeelException e) {
-                System.err.println("Look and Feel not found.");
-            }
+        } catch (ClassNotFoundException | InstantiationException | IllegalAccessException | javax.swing.UnsupportedLookAndFeelException e) {
+            System.err.println("Look and Feel not found.");
+        }
 
-
-            initComponents();
+        initComponents();
 
         draw();
 
