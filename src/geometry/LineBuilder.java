@@ -17,7 +17,7 @@ public class LineBuilder {
     /*
         TODO - Fix back()
         TODO - Fix step()
-        TODO - Create Flag class
+        TODO - Fix flags
      */
 
     public class CannotGoBackException extends Exception {
@@ -43,10 +43,9 @@ public class LineBuilder {
         private ArrayList<Segment> createdLines;
         private ArrayList<Step> steps;
         private ArrayList<Flag> flags;
-
-        Segment lastLine;
-
-        StepResult stepResult;
+        private Segment lastLine;
+        private Step lastStep;
+        private StepResult stepResult;
 
         Step(LineBuilder lnBldr, StepResult result) {
             this(lnBldr);
@@ -60,6 +59,7 @@ public class LineBuilder {
             steps = new ArrayList<>(lnBldr.steps);
             flags = new ArrayList<>(lnBldr.flagList);
             lastLine = lnBldr.lastLine;
+            lastStep = lnBldr.lastStep;
         }
 
         public void setStepResult(StepResult sr) {
@@ -87,7 +87,9 @@ public class LineBuilder {
         public StepResult getStepResult() {
             return stepResult;
         }
-
+        public Step getLastStep() {
+            return lastStep;
+        }
     }
 
     /**
@@ -121,6 +123,8 @@ public class LineBuilder {
     private Coordinate originPoint;
 
     private Segment lastLine;
+
+    private Step lastStep;
 
     public LineBuilder(ArrayList<Coordinate> coordinateList) {
         if(coordinateList.size() == 0) throw new IllegalArgumentException("Given list contains no coordinates.");
@@ -169,11 +173,12 @@ public class LineBuilder {
          */
         //availableCoordinates.remove(lastLine.getEnd());
         lastLine = step.lastLine;
+        lastStep = step.lastStep;
     }
 
     public void back() throws CannotGoBackException {
         if(steps.size() == 0) throw new CannotGoBackException("Cannot go back.");
-        rollback(steps.get(steps.size()-1));
+        rollback(lastStep);
     }
 
     public void step() {
@@ -185,15 +190,10 @@ public class LineBuilder {
             // Create step point to go back to
             Step thisStep = new Step(this);
             steps.add(thisStep);
+            lastStep = thisStep;
 
             for(Flag flag : flagList) {
                 availableCoordinates.remove(flag.coordinate);
-            }
-
-            // If there is only one coordinate left to be connected, add the starting point back.
-            if(availableCoordinates.size() == 1) {
-                availableCoordinates.add(originPoint);
-                connectLast = true;
             }
 
             // Find the next best line
@@ -221,9 +221,10 @@ public class LineBuilder {
             flagList = new ArrayList<>();
             thisStep.setStepResult(Step.StepResult.SUCCESSFUL);
 
-            // If this step was the last step
-            if(connectLast) {
-                availableCoordinates.remove(originPoint);
+            // If there is only one coordinate left to be connected, add the starting point back.
+            if(availableCoordinates.size() == 1) {
+                availableCoordinates.add(originPoint);
+                connectLast = true;
             }
 
         } else {
@@ -272,6 +273,9 @@ public class LineBuilder {
     }
     public Segment getLastLine() {
         return lastLine;
+    }
+    public Step getLastStep() {
+        return lastStep;
     }
     // </editor-fold>
 
