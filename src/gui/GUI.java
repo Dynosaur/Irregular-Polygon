@@ -3,7 +3,7 @@ package gui;
 import gpdraw.SketchPadPanel;
 
 import javax.swing.*;
-import javax.swing.table.DefaultTableModel;
+import javax.swing.border.Border;
 
 import geometry.LineBuilder;
 import geometry.Coordinate;
@@ -11,7 +11,6 @@ import geometry.Segment;
 
 import java.awt.*;
 import java.awt.event.*;
-import java.util.Vector;
 import java.util.ArrayList;
 
 /**
@@ -28,23 +27,21 @@ public class GUI {
         TODO - Clean up looks
      */
 
+    private LineBuilder lineBuilder;
+
     private JFrame window;
 
     private JTabbedPane panelSwitcher;
 
-    private JPanel stepPanel, infoPanel, buttonPanel, superDrawPanel, flagPanel;
+    private JPanel stepPanel, infoPanel, buttonPanel, superDrawPanel, createFlagPanel, currentFlagPanel;
 
-    private JTable availableCoordinatesTable, currentLinesTable, lastStepAvailableCoordinatesTable;
-
-    private LineTableModel currentLinesModel;
+    private JTable availableCoordinatesTable, currentLinesTable, lastStepAvailableCoordinatesTable, currentFlagsTable;
 
     private SketchPadPanel drawPanel;
 
-    private LineBuilder lineBuilder;
-
-    private JLabel stepLabel, stepLastCoordinates, errorLabel, flagHelpLabel, mouseNearestCoordinate;
-
     private Pen pen;
+
+    private JLabel stepLabel, errorLabel, flagHelpLabel, mouseNearestCoordinate;
 
     private int numOfSteps;
 
@@ -63,6 +60,7 @@ public class GUI {
         drawThread.start();
     }
 
+    // <editor-fold defaultstate="collapsed" desc="Event Handling">
     private void onChange() {
         errorLabel.setText("");
         flagHelpLabel.setText("");
@@ -76,15 +74,6 @@ public class GUI {
 
     private void update() {
         stepLabel.setText("Steps Completed: " + numOfSteps);
-        if (numOfSteps == 0)
-            stepLastCoordinates.setText("Step Coordinates: Not Available");
-        else {
-            try {
-                stepLastCoordinates.setText("Step Coordinates: " + lineBuilder.getLastStep().getAvailableCoordinates());
-            } catch(NullPointerException e) {
-                stepLastCoordinates.setText("Step Coordinates: " + 0);
-            }
-        }
 
         draw();
 
@@ -105,6 +94,8 @@ public class GUI {
         switch (lineBuilder.getLastStep().getStepResult()) {
             case SUCCESSFUL:
                 numOfSteps++;
+                for(LineBuilder.Flag f : lineBuilder.getFlags())
+                    lineBuilder.getAvailableCoordinates().add(f.getCoordinate());
                 break;
             case FAILED:
                 lineBuilder.getSteps().remove(lineBuilder.getLastStep());
@@ -174,6 +165,7 @@ public class GUI {
         }
         mouseNearestCoordinate.setText("" + coordinate);
     }
+    // </editor-fold>
 
     // <editor-fold defaultstate="collapsed" desc="Panels and Layout">
     private void initComponents() {
@@ -182,6 +174,7 @@ public class GUI {
 
         infoPanel();
         stepPanel();
+        flagDisplayPanel();
         tabbedPane();
         buttonPanel();
         flagPanel();
@@ -200,7 +193,7 @@ public class GUI {
                         .addGroup(
                                 layout.createParallelGroup(GroupLayout.Alignment.CENTER)
                                         .addComponent(buttonPanel)
-                                        .addComponent(flagPanel)
+                                        .addComponent(createFlagPanel)
                         )
                         .addGap(5, 25, 25)
                         .addComponent(superDrawPanel)
@@ -216,7 +209,7 @@ public class GUI {
                                                 layout.createSequentialGroup()
                                                         .addComponent(buttonPanel)
                                                         .addGap(5,25,25)
-                                                        .addComponent(flagPanel)
+                                                        .addComponent(createFlagPanel)
                                         )
                                         .addComponent(superDrawPanel)
                         )
@@ -243,7 +236,7 @@ public class GUI {
         JScrollPane availableCoordinatesTableScrollPane = new JScrollPane(availableCoordinatesTable);
 
         // Set up table and scroll pane for current lines
-        currentLinesModel = new LineTableModel(lineBuilder.getCreatedLines());
+        LineTableModel currentLinesModel = new LineTableModel(lineBuilder.getCreatedLines());
         JLabel currentLinesTitle = new JLabel("Current Lines");
         currentLinesTable = new JTable(currentLinesModel);
         currentLinesTable.setFillsViewportHeight(true);
@@ -305,7 +298,6 @@ public class GUI {
         stepPanel.setBorder(BorderFactory.createTitledBorder("Previous Steps"));
 
         stepLabel = new JLabel("Steps Completed: " + 0);
-        stepLastCoordinates = new JLabel("Step Coordinates: Not Available");
 
         // Set up table and scroll pane for last step available coordinates
         CoordinateTableModel lastStepModel = new CoordinateTableModel(new ArrayList<>());
@@ -345,10 +337,46 @@ public class GUI {
         // </editor-fold>
     }
 
+    private void flagDisplayPanel() {
+        currentFlagPanel = new JPanel();
+        currentFlagPanel.setBorder(BorderFactory.createTitledBorder("Current Flagged Coordinates"));
+
+        // Set up table and scroll pane for current flags
+        CoordinateTableModel currentFlagModel = new CoordinateTableModel(new ArrayList<>());
+        JLabel currentFlagsCoordinatesTitle = new JLabel("Current Flags");
+        currentFlagsTable = new JTable(currentFlagModel);
+        currentFlagsTable.setFillsViewportHeight(true);
+        JScrollPane currentFlagsTableScrollPane = new JScrollPane(currentFlagsTable);
+
+        // <editor-fold defaultstate="collapsed" desc="Layout">
+        GroupLayout layout = new GroupLayout(currentFlagPanel);
+        currentFlagPanel.setLayout(layout);
+
+        layout.setHorizontalGroup(
+            layout.createSequentialGroup()
+                .addGap(10)
+                .addGroup(
+                    layout.createParallelGroup(GroupLayout.Alignment.CENTER)
+                        .addComponent(currentFlagsCoordinatesTitle)
+                        .addComponent(currentFlagsTableScrollPane)
+                )
+                .addGap(10)
+        );
+        layout.setVerticalGroup(
+            layout.createSequentialGroup()
+                .addGap(10)
+                .addComponent(currentFlagsCoordinatesTitle)
+                .addComponent(currentFlagsTableScrollPane)
+                .addGap(10)
+        );
+        // </editor-fold>
+    }
+
     private void tabbedPane() {
         panelSwitcher = new JTabbedPane();
         panelSwitcher.addTab("Info", infoPanel);
         panelSwitcher.addTab("Step", stepPanel);
+        panelSwitcher.addTab("Flags", currentFlagPanel);
     }
 
     private void buttonPanel() {
@@ -403,15 +431,15 @@ public class GUI {
     }
 
     private void flagPanel() {
-        flagPanel = new JPanel();
-        flagPanel.setBorder(BorderFactory.createTitledBorder("Flag Options"));
+        createFlagPanel = new JPanel();
+        createFlagPanel.setBorder(BorderFactory.createTitledBorder("Flag Options"));
 
         JButton flagButton = new JButton("Place Flag");
         flagButton.addActionListener(e -> flagButtonClicked());
 
         // <editor-fold defaultstate="collapsed" desc="Layout">
-        GroupLayout layout = new GroupLayout(flagPanel);
-        flagPanel.setLayout(layout);
+        GroupLayout layout = new GroupLayout(createFlagPanel);
+        createFlagPanel.setLayout(layout);
 
         layout.setHorizontalGroup(
                 layout.createSequentialGroup()
@@ -435,11 +463,15 @@ public class GUI {
         drawPanel = new SketchPadPanel(0);
         pen = new Pen(drawPanel);
 
+        /*
+        // Clicking on draw panel at any time other than when placing a flag prints out the mouse position
         drawPanel.addMouseListener(new MouseAdapter() {
             @Override public void mouseClicked(MouseEvent e) {
+                System.out.println(canClickDrawPanel);
                 if(canClickDrawPanel) drawPanelClicked(e);
             }
         });
+        */
 
         flagHelpLabel = new JLabel();
         mouseNearestCoordinate = new JLabel();
