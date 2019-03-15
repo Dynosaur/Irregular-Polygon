@@ -22,8 +22,6 @@ public class Runner {
         list.add(d);
         list.add(e);
         LineBuilder lb = new LineBuilder(list);
-        IrregularPolygon shape0 = new IrregularPolygon();
-        //lb.auto().toArray(new Segment[0])
 
         GUI gui = new GUI(lb);
     }

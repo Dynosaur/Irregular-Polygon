@@ -192,8 +192,15 @@ public class LineBuilder {
             steps.add(thisStep);
             lastStep = thisStep;
 
+            // Remove all flagged coordinates
             for(Flag flag : flagList) {
                 availableCoordinates.remove(flag.coordinate);
+            }
+
+            // If there is only one coordinate left to be connected, add the starting point back.
+            if(availableCoordinates.size() == 1) {
+                availableCoordinates.add(originPoint);
+                connectLast = true;
             }
 
             // Find the next best line
@@ -206,26 +213,25 @@ public class LineBuilder {
                     thisStep.setStepResult(Step.StepResult.FAILED);
                     return;
                 }
+            // Check if suggested line intersects any flags
             for(Flag flag : flagList) {
                 if(candidate.getStart().equals(flag.coordinate) || candidate.getEnd().equals(flag.coordinate)) {
                     thisStep.setStepResult(Step.StepResult.FAILED);
                     return;
                 }
             }
+
             // If valid line, add it to createdLines, make it the lastLine, and make the end point of the line the starting point of the list.
             lastLine = candidate;
             createdLines.add(candidate);
             availableCoordinates.remove(candidate.getStart());
             availableCoordinates.remove(candidate.getEnd());
             availableCoordinates.add(0,candidate.getEnd());
+            for(Flag flag : flagList) {
+                availableCoordinates.add(flag.coordinate);
+            }
             flagList = new ArrayList<>();
             thisStep.setStepResult(Step.StepResult.SUCCESSFUL);
-
-            // If there is only one coordinate left to be connected, add the starting point back.
-            if(availableCoordinates.size() == 1) {
-                availableCoordinates.add(originPoint);
-                connectLast = true;
-            }
 
         } else {
             Step thisStep = new Step(this, Step.StepResult.NOMORELINES);
@@ -270,6 +276,12 @@ public class LineBuilder {
     }
     public ArrayList<Flag> getFlags() {
         return flagList;
+    }
+    public ArrayList<Coordinate> getFlaggedCoordinates() {
+        ArrayList<Coordinate> list = new ArrayList<>();
+        for(Flag flag : flagList)
+            list.add(flag.getCoordinate());
+        return list;
     }
     public Segment getLastLine() {
         return lastLine;

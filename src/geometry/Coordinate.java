@@ -49,6 +49,14 @@ public class Coordinate implements java.io.Serializable {
         return (otherCoordinate.Y - Y) / (otherCoordinate.X - X);
     }
 
+    public double angle(Coordinate otherCoordinate) {
+        if(this.equals(otherCoordinate)) return 0;
+        Coordinate c = new Coordinate(otherCoordinate.X, Y);
+        Segment hyp = new Segment(this, otherCoordinate);
+        Segment adj = new Segment(this, c);
+        return Math.toDegrees(Math.acos(adj.getDistance() / hyp.getDistance()));
+    }
+
     /**
      * Draws this coordinate with the specified pen. Refers to draw(Pen, Color) while passing in Color.BLACK.
      * @param pen The pen used to draw this coordinate
@@ -70,7 +78,11 @@ public class Coordinate implements java.io.Serializable {
         pen.setWidth(5);
         pen.setColor(color);
         pen.move(this);
-        pen.setWidth(1);        // Defaulting the width
+        pen.setWidth(1);
+    }
+
+    public void verbose() {
+
     }
 
     // <editor-fold defaultstate="collapsed" desc="Object Methods">

@@ -3,7 +3,6 @@ package gui;
 import gpdraw.SketchPadPanel;
 
 import javax.swing.*;
-import javax.swing.border.Border;
 
 import geometry.LineBuilder;
 import geometry.Coordinate;
@@ -24,7 +23,7 @@ public class GUI {
 
     /*
         TODO - Create origin point changer/selector
-        TODO - Clean up looks
+        TODO - Fix weird drawing error (Draws random lines with random widths)
      */
 
     private LineBuilder lineBuilder;
@@ -49,19 +48,23 @@ public class GUI {
 
     private void draw() {
         Thread drawThread = new Thread(() -> {
+            clearDrawPanel();
+            /*
             for (Coordinate coordinate : lineBuilder.getAvailableCoordinates())
                 coordinate.draw(pen, Color.BLACK);
+                */
             for (Segment line : lineBuilder.getCreatedLines())
-                line.draw(pen);
-            for (LineBuilder.Flag flag : lineBuilder.getFlags()) {
+                line.draw(pen, Color.BLACK);
+            /*
+            for (LineBuilder.Flag flag : lineBuilder.getFlags())
                 flag.getCoordinate().draw(pen, Color.RED);
-            }
+                */
         });
         drawThread.start();
     }
 
     // <editor-fold defaultstate="collapsed" desc="Event Handling">
-    private void onChange() {
+    private void clearHelpText() {
         errorLabel.setText("");
         flagHelpLabel.setText("");
         mouseNearestCoordinate.setText("");
@@ -81,6 +84,8 @@ public class GUI {
         availableCoordinatesTable.repaint();
         currentLinesTable.setModel(new LineTableModel(lineBuilder.getCreatedLines()));
         currentLinesTable.repaint();
+        currentFlagsTable.setModel(new CoordinateTableModel(lineBuilder.getFlaggedCoordinates()));
+        currentFlagsTable.repaint();
         try {
             lastStepAvailableCoordinatesTable.setModel(new CoordinateTableModel(lineBuilder.getLastStep().getAvailableCoordinates()));
         } catch(NullPointerException e) {
@@ -89,8 +94,9 @@ public class GUI {
     }
 
     private void nextButtonClicked() {
-        onChange();
+        clearHelpText();
         lineBuilder.step();
+        System.out.println(lineBuilder.getAvailableCoordinates());
         switch (lineBuilder.getLastStep().getStepResult()) {
             case SUCCESSFUL:
                 numOfSteps++;
@@ -98,7 +104,9 @@ public class GUI {
                     lineBuilder.getAvailableCoordinates().add(f.getCoordinate());
                 break;
             case FAILED:
+                System.out.println(lineBuilder.getAvailableCoordinates());
                 lineBuilder.getSteps().remove(lineBuilder.getLastStep());
+                System.out.println(lineBuilder.getAvailableCoordinates());
                 errorLabel.setText("Step failed.");
                 break;
             case NOMORELINES:
@@ -110,7 +118,7 @@ public class GUI {
     }
 
     private void backButtonClicked() {
-        onChange();
+        clearHelpText();
         try {
             lineBuilder.back();
             numOfSteps--;
@@ -122,7 +130,7 @@ public class GUI {
     }
 
     private void resetButtonClicked() {
-        onChange();
+        clearHelpText();
         numOfSteps = 0;
         clearDrawPanel();
         lineBuilder = new LineBuilder(lineBuilder.getOriginalCoordinates());
@@ -142,6 +150,7 @@ public class GUI {
                         flagHelpLabel.setText("Added Flag at " + panelCoordinate);
                         flagHelpLabel.setForeground(new Color(100, 200, 0));
                         draw();
+                        update();
                         drawPanel.removeMouseListener(this);
                         canClickDrawPanel = true;
                         return;
