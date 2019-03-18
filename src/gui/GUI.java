@@ -14,7 +14,7 @@ import java.util.ArrayList;
 
 /**
  * @author Alejandro Doberenz
- * @version 3/7/2019
+ * @version 3/17/2019
  *
  * This is the GUI for the program. It can display all the current lines drawn, original given coordinates, available
  * coordinates, and place flags for the editor.
@@ -23,9 +23,10 @@ public class GUI {
 
     /*
         TODO - Create origin point changer/selector
-        TODO - Fix weird drawing error (Draws random lines with random widths)
+        TODO - Draw projections where the line builder will go
      */
 
+    // <editor-fold defaultstate="collapsed" desc="Variables">
     private LineBuilder lineBuilder;
 
     private JFrame window;
@@ -36,42 +37,34 @@ public class GUI {
 
     private JTable availableCoordinatesTable, currentLinesTable, lastStepAvailableCoordinatesTable, currentFlagsTable;
 
+    private JLabel stepLabel, errorLabel, flagHelpLabel, mouseCoordinateLabel;
+
     private SketchPadPanel drawPanel;
 
     private Pen pen;
 
-    private JLabel stepLabel, errorLabel, flagHelpLabel, mouseNearestCoordinate;
-
     private int numOfSteps;
-
-    private boolean canClickDrawPanel = true;
+    // </editor-fold>
 
     private void draw() {
-        Thread drawThread = new Thread(() -> {
-            clearDrawPanel();
-            /*
-            for (Coordinate coordinate : lineBuilder.getAvailableCoordinates())
-                coordinate.draw(pen, Color.BLACK);
-                */
-            for (Segment line : lineBuilder.getCreatedLines())
-                line.draw(pen, Color.BLACK);
-            /*
-            for (LineBuilder.Flag flag : lineBuilder.getFlags())
-                flag.getCoordinate().draw(pen, Color.RED);
-                */
-        });
-        drawThread.start();
+        clearDrawPanel();
+        for (Coordinate coordinate : lineBuilder.getAvailableCoordinates())
+            coordinate.draw(pen, Color.BLACK);
+        for (Segment line : lineBuilder.getCreatedLines())
+            line.draw(pen, Color.BLACK);
+        for (LineBuilder.Flag flag : lineBuilder.getFlags())
+            flag.getCoordinate().draw(pen, Color.RED);
     }
 
     // <editor-fold defaultstate="collapsed" desc="Event Handling">
     private void clearHelpText() {
         errorLabel.setText("");
         flagHelpLabel.setText("");
-        mouseNearestCoordinate.setText("");
+        mouseCoordinateLabel.setText("");
     }
 
     private void clearDrawPanel() {
-        pen.setColor(Color.WHITE);
+        drawPanel.setColor(Color.WHITE);
         drawPanel.fillRect(0, 0, drawPanel.getWidth(), drawPanel.getHeight());
     }
 
@@ -109,7 +102,7 @@ public class GUI {
                 System.out.println(lineBuilder.getAvailableCoordinates());
                 errorLabel.setText("Step failed.");
                 break;
-            case NOMORELINES:
+            case NO_MORE_LINES:
                 errorLabel.setText("No more lines can be drawn.");
                 lineBuilder.getSteps().remove(lineBuilder.getLastStep());
                 break;
@@ -138,7 +131,6 @@ public class GUI {
     }
 
     private void flagButtonClicked() {
-        canClickDrawPanel = false;
         flagHelpLabel.setText("Pick a point on the graph to flag.");
         flagHelpLabel.setForeground(new Color(0, 150, 250));
         MouseAdapter mouse = new MouseAdapter() {
@@ -149,30 +141,17 @@ public class GUI {
                         lineBuilder.getFlags().add(new LineBuilder.Flag(panelCoordinate));
                         flagHelpLabel.setText("Added Flag at " + panelCoordinate);
                         flagHelpLabel.setForeground(new Color(100, 200, 0));
-                        draw();
                         update();
                         drawPanel.removeMouseListener(this);
-                        canClickDrawPanel = true;
                         return;
                     }
                 }
                 flagHelpLabel.setText("No point selected, please try again.");
                 flagHelpLabel.setForeground(Color.RED);
+                drawPanel.removeMouseListener(this);
             }
         };
         drawPanel.addMouseListener(mouse);
-    }
-
-    private void drawPanelClicked(MouseEvent e) {
-        Coordinate coordinate = new Coordinate(e.getX() - drawPanel.getWidth() / 2.0D, -e.getY() + drawPanel.getHeight() / 2.0D);
-        for(Coordinate panelCoordinate : lineBuilder.getAvailableCoordinates()) {
-            if (coordinate.distance(panelCoordinate) < 5) {
-                mouseNearestCoordinate.setForeground(Color.BLACK);
-                mouseNearestCoordinate.setText("" + panelCoordinate);
-                return;
-            }
-        }
-        mouseNearestCoordinate.setText("" + coordinate);
     }
     // </editor-fold>
 
@@ -472,18 +451,21 @@ public class GUI {
         drawPanel = new SketchPadPanel(0);
         pen = new Pen(drawPanel);
 
-        /*
-        // Clicking on draw panel at any time other than when placing a flag prints out the mouse position
-        drawPanel.addMouseListener(new MouseAdapter() {
-            @Override public void mouseClicked(MouseEvent e) {
-                System.out.println(canClickDrawPanel);
-                if(canClickDrawPanel) drawPanelClicked(e);
+        flagHelpLabel = new JLabel();
+        mouseCoordinateLabel = new JLabel();
+
+        drawPanel.addMouseMotionListener(new MouseAdapter() {
+            @Override public void mouseMoved(MouseEvent e) {
+                Coordinate mousePosition = new Coordinate(e.getX() - drawPanel.getWidth() / 2.0D, -e.getY() + drawPanel.getHeight() / 2.0D);
+                for(Coordinate realCoordinate : lineBuilder.getAvailableCoordinates()) {
+                    if (mousePosition.distance(realCoordinate) < 7) {
+                        mouseCoordinateLabel.setText("X: " + realCoordinate.getX() + " Y: " + realCoordinate.getY());
+                        return;
+                    }
+                }
+                mouseCoordinateLabel.setText("X: " + mousePosition.getX() + " Y: " + mousePosition.getY());
             }
         });
-        */
-
-        flagHelpLabel = new JLabel();
-        mouseNearestCoordinate = new JLabel();
 
         // <editor-fold defaultstate="collapsed" desc="Layout">
         GroupLayout layout = new GroupLayout(superDrawPanel);
@@ -496,7 +478,7 @@ public class GUI {
                                 layout.createParallelGroup(GroupLayout.Alignment.CENTER)
                                         .addComponent(drawPanel, 100, 300, 300)
                                         .addComponent(flagHelpLabel)
-                                        .addComponent(mouseNearestCoordinate)
+                                        .addComponent(mouseCoordinateLabel)
                         )
                         .addGap(10)
         );
@@ -505,7 +487,7 @@ public class GUI {
                         .addGap(10)
                         .addComponent(drawPanel, 100, 300, 300)
                         .addComponent(flagHelpLabel)
-                        .addComponent(mouseNearestCoordinate)
+                        .addComponent(mouseCoordinateLabel)
                         .addGap(10)
         );
         // </editor-fold>
@@ -524,6 +506,7 @@ public class GUI {
         } catch (ClassNotFoundException | InstantiationException | IllegalAccessException | javax.swing.UnsupportedLookAndFeelException e) {
             System.err.println("Look and Feel not found.");
         }
+
         initComponents();
         draw();
 

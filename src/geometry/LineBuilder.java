@@ -1,43 +1,51 @@
 package geometry;
 
-import geometry.Coordinate;
-import geometry.Segment;
-
 import java.util.ArrayList;
 
 /**
  * @author Alejandro Doberenz
- * @version 2/27/2019
+ * @version 3/17/2019
  *
- * A line builder is made so it can find the best solution to a system of coordinates. The solution is found when
- * all coordinates are connected to each other with line segments. No line segment may intersect each other.
+ * The purpose of a line builder is to build lines when given a series of points.
  */
 public class LineBuilder {
 
     /*
-        TODO - Fix back()
-        TODO - Fix step()
-        TODO - Fix flags
+        TODO - Find next point, but don't solve
      */
 
-    public class CannotGoBackException extends Exception {
-        public CannotGoBackException(String message) {
+    /**
+     * Custom exception for when the line builder cannot go back anymore. This is usually caused
+     * because the step list is empty.
+     */
+    public static class CannotGoBackException extends Exception {
+        private CannotGoBackException(String message) {
             super(message);
         }
     }
 
-    static public class Step {
+    /**
+     * A step is the representation of the line builder at a given moment. It saves what coordinates
+     * are available, the created lines, the steps it has, the flags you've placed, and more. This was made
+     * so that you can undo an action with a line builder.
+     */
+    public static class Step {
 
+        /**
+         * An enum for the results of a step. A successful step means that the step found a coordinate
+         * to go to and it wasn't a flag and a line connected to it didn't intersect with any other lines.
+         * A failed step means the step intersected a line or the coordinate was on a flag. No more lines
+         * means it could not make any lines.
+         */
         public enum StepResult {
 
             SUCCESSFUL,
             FAILED,
-            NOMORELINES
+            NO_MORE_LINES
 
         }
 
-        boolean connectLast;
-
+        private boolean connectLast;
         private ArrayList<Coordinate> availableCoordinates;
         private ArrayList<Coordinate> lastAvailable;
         private ArrayList<Segment> createdLines;
@@ -47,22 +55,22 @@ public class LineBuilder {
         private Step lastStep;
         private StepResult stepResult;
 
-        Step(LineBuilder lnBldr, StepResult result) {
-            this(lnBldr);
+        private Step(LineBuilder lineBuilder, StepResult result) {
+            this(lineBuilder);
             setStepResult(result);
         }
-        public Step(LineBuilder lnBldr) {
-            connectLast = lnBldr.connectLast;
-            availableCoordinates = new ArrayList<>(lnBldr.availableCoordinates);
-            lastAvailable = new ArrayList<>(lnBldr.lastAvailable);
-            createdLines = new ArrayList<>(lnBldr.createdLines);
-            steps = new ArrayList<>(lnBldr.steps);
-            flags = new ArrayList<>(lnBldr.flagList);
-            lastLine = lnBldr.lastLine;
-            lastStep = lnBldr.lastStep;
+        private Step(LineBuilder lineBuilder) {
+            connectLast = lineBuilder.connectLast;
+            availableCoordinates = new ArrayList<>(lineBuilder.availableCoordinates);
+            lastAvailable = new ArrayList<>(lineBuilder.lastAvailable);
+            createdLines = new ArrayList<>(lineBuilder.createdLines);
+            steps = new ArrayList<>(lineBuilder.steps);
+            flags = new ArrayList<>(lineBuilder.flagList);
+            lastLine = lineBuilder.lastLine;
+            lastStep = lineBuilder.lastStep;
         }
 
-        public void setStepResult(StepResult sr) {
+        private void setStepResult(StepResult sr) {
             stepResult = sr;
         }
 
@@ -93,7 +101,7 @@ public class LineBuilder {
     }
 
     /**
-     * A flag stops a coordinate from being selected in the step() process.
+     * A flag stops a coordinate from being selected.
      */
     static public class Flag {
 
@@ -192,15 +200,15 @@ public class LineBuilder {
             steps.add(thisStep);
             lastStep = thisStep;
 
-            // Remove all flagged coordinates
-            for(Flag flag : flagList) {
-                availableCoordinates.remove(flag.coordinate);
-            }
-
             // If there is only one coordinate left to be connected, add the starting point back.
             if(availableCoordinates.size() == 1) {
                 availableCoordinates.add(originPoint);
                 connectLast = true;
+            }
+
+            // Remove all flagged coordinates
+            for(Flag flag : flagList) {
+                availableCoordinates.remove(flag.coordinate);
             }
 
             // Find the next best line
@@ -234,7 +242,7 @@ public class LineBuilder {
             thisStep.setStepResult(Step.StepResult.SUCCESSFUL);
 
         } else {
-            Step thisStep = new Step(this, Step.StepResult.NOMORELINES);
+            Step thisStep = new Step(this, Step.StepResult.NO_MORE_LINES);
             steps.add(thisStep);
         }
     }

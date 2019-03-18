@@ -1,39 +1,24 @@
 package geometry;
 
-import gui.Pen;
+import gpdraw.DrawingTool;
 
 /**
  * @author Alejandro Doberenz
- * @version 2/26/2019
+ * @version 3/17/2019
  *
  * A coordinate represents a position on an X and Y graph. It contains methods to compare it to other coordinates,
  * convert it to a String, and draw it with a Pen object.
  */
 public class Coordinate implements java.io.Serializable {
 
-    /** The X and Y position of the Coordinate */
+    // The X and Y position of the Coordinate
     private final double X, Y;
-
-    public Coordinate(double x, double y) {
-        X = x;
-        Y = y;
-    }
-
-    /**
-     * Translates this coordinate by the X and Y values. Note that this does not give you an existing coordinate
-     * at that location, but makes a new coordinate at the location.
-     * @param x Modifies the X value
-     * @param y Modifies the Y value
-     * @return A new coordinate at the translated position
-     */
-    public Coordinate translate(double x, double y) {
-        return new Coordinate(X + x, Y + y);
-    }
 
     /**
      * Finds the distance between two coordinates by using the distance formula. Wow, I finally found a practical
      * use for of what I learned in high school.
-     * @param otherCoordinate The coordinate to find the distance to
+     *
+     * @param otherCoordinate The coordinate to find the distance between
      * @return The distance from this coordinate to the given coordinate
      */
     public double distance(Coordinate otherCoordinate) {
@@ -41,14 +26,16 @@ public class Coordinate implements java.io.Serializable {
     }
 
     /**
-     * Finds the gradient of a line between this point and another. Simple yChg / xChg.
-     * @param otherCoordinate A coordinate to find the slope between
-     * @return The slope of a line between this point and the parameter
+     * Finds the slope of a line between this point and another.
+     *
+     * @param otherCoordinate Any coordinate
+     * @return The slope of a line between this and another coordinate
      */
     public double slope(Coordinate otherCoordinate) {
         return (otherCoordinate.Y - Y) / (otherCoordinate.X - X);
     }
 
+    /*
     public double angle(Coordinate otherCoordinate) {
         if(this.equals(otherCoordinate)) return 0;
         Coordinate c = new Coordinate(otherCoordinate.X, Y);
@@ -56,52 +43,52 @@ public class Coordinate implements java.io.Serializable {
         Segment adj = new Segment(this, c);
         return Math.toDegrees(Math.acos(adj.getDistance() / hyp.getDistance()));
     }
+    */
 
     /**
-     * Draws this coordinate with the specified pen. Refers to draw(Pen, Color) while passing in Color.BLACK.
-     * @param pen The pen used to draw this coordinate
+     * Draws this coordinate with the color black.
+     *
+     * @param pen The DrawingTool used to draw this coordinate
      */
-    public void draw(Pen pen) {
+    public void draw(DrawingTool pen) {
         draw(pen, java.awt.Color.BLACK);
     }
 
     /**
-     * Draws this point without drawing any lines towards it. It is given a modified width so it is more visible. The
-     * width is set back to default at the end of the method.
-     * @param pen The pen used to draw this coordinate
+     * Draws this point with the specified color.
+     *
+     * @param pen The DrawingTool used to draw this coordinate
      * @param color The color used to draw this coordinate
      */
-    public void draw(Pen pen, java.awt.Color color) {
+    public void draw(DrawingTool pen, java.awt.Color color) {
         pen.up();               // Lifts the pen up so no lines are drawn toward the coordinate
-        pen.move(this);
+        pen.move(X, Y);
         pen.down();
         pen.setWidth(5);
         pen.setColor(color);
-        pen.move(this);
+        pen.move(X, Y);
         pen.setWidth(1);
-    }
-
-    public void verbose() {
-
-    }
-
-    // <editor-fold defaultstate="collapsed" desc="Object Methods">
-    @Override public String toString() {
-        return "Point[X=" + X + ",Y=" + Y + "]";
     }
 
     /**
      * Compares this coordinate with another object. It is specialized to deal with comparing coordinates. Coordinates
      * are considered to be equal if their distance is less than 0.0001.
-     * @param obj Any object, preferably a coordinate
+     *
+     * @param point Any object, preferably a coordinate
      * @return If the two objects are equal or not
      */
-    @Override public boolean equals(Object obj) {
-        if(!(obj instanceof Coordinate)) return false;
-        Coordinate coordinate = (Coordinate) obj;
-        return distance(coordinate) < 0.0001;
+    public boolean equals(Coordinate point) {
+        return distance(point) < 0.0001;
     }
-    // </editor-fold>
+
+    @Override public String toString() {
+        return "Point[X=" + X + ",Y=" + Y + "]";
+    }
+
+    public Coordinate(double x, double y) {
+        X = x;
+        Y = y;
+    }
 
     // <editor-fold defaultstate="collapsed" desc="Accessor Methods">
     public double getX() {

@@ -23,7 +23,7 @@ public class Runner {
         list.add(e);
         LineBuilder lb = new LineBuilder(list);
 
-        GUI gui = new GUI(lb);
+        java.awt.EventQueue.invokeLater(new Thread(() -> new GUI(lb)));
     }
 
 }
