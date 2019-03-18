@@ -4,9 +4,10 @@ import java.util.ArrayList;
 
 /**
  * @author Alejandro Doberenz
- * @version 3/17/2019
+ * @version 3/18/2019
  *
- * The purpose of a line builder is to build lines when given a series of points.
+ * The purpose of a line builder is to build lines when given a series of points. It attempts to do this without
+ * intersecting any lines.
  */
 public class LineBuilder {
 
@@ -14,6 +15,7 @@ public class LineBuilder {
         TODO - Find next point, but don't solve
      */
 
+    // <editor-fold defaultstate="collapsed" desc="Nested Classes">
     /**
      * Custom exception for when the line builder cannot go back anymore. This is usually caused
      * because the step list is empty.
@@ -41,7 +43,8 @@ public class LineBuilder {
 
             SUCCESSFUL,
             FAILED,
-            NO_MORE_LINES
+            NO_MORE_LINES,
+            COMPLETE
 
         }
 
@@ -101,11 +104,12 @@ public class LineBuilder {
     }
 
     /**
-     * A flag stops a coordinate from being selected.
+     * A flag stops a coordinate from being selected in the step process. This allows
+     * the user to control where they want the line to go.
      */
     static public class Flag {
 
-        private Coordinate coordinate;
+        private Coordinate coordinate;  // Location of the flag
 
         public Flag(Coordinate flag) {
             coordinate = flag;
@@ -116,16 +120,21 @@ public class LineBuilder {
         }
 
     }
+    // </editor-fold>
 
+    // <editor-fold defaultstate="collapsed" desc="Variables"
     private boolean connectLast;
 
     private ArrayList<Segment> createdLines = new ArrayList<>();
+
     private ArrayList<Step> steps = new ArrayList<>();
 
     private ArrayList<Flag> flagList = new ArrayList<>();
 
     private ArrayList<Coordinate> originalCoordinates;
+
     private ArrayList<Coordinate> availableCoordinates;
+
     private ArrayList<Coordinate> lastAvailable;
 
     private Coordinate originPoint;
@@ -133,62 +142,37 @@ public class LineBuilder {
     private Segment lastLine;
 
     private Step lastStep;
+    // </editor-fold>
 
-    public LineBuilder(ArrayList<Coordinate> coordinateList) {
-        if(coordinateList.size() == 0) throw new IllegalArgumentException("Given list contains no coordinates.");
-        connectLast = false;
-        originalCoordinates = new ArrayList<>(coordinateList);
-        availableCoordinates = new ArrayList<>(coordinateList);
-        originPoint = coordinateList.get(0);
-    }
-
-    public static void print(Object[] array) {
-        for(int i = 0; i < array.length; i++)
-            if(array.length==1) System.out.println("[" + array[i] + "]");
-            else if(i == 0) System.out.print("[" + array[i] + ", ");
-            else if (i == array.length - 1) System.out.println(array[i] + "]");
-            else System.out.print(array[i] + ", ");
-    }
-
-    public static int findSmallestValue(ArrayList<Double> array) {
-        double smallestValue = array.get(0);
-        int indexOfSmallestValue = 0;
-        for(Double value : array) {
-            if(value < smallestValue) {
-                smallestValue = value;
-                indexOfSmallestValue = array.indexOf(value);
-            }
-        }
-        return indexOfSmallestValue;
-    }
-
-    public static double round(double value, int places) {
-        System.out.println(value);
-        if(places < 0) throw new IllegalArgumentException();
-        java.math.BigDecimal temp = new java.math.BigDecimal(Double.toString(value));
-        temp = temp.setScale(places, java.math.RoundingMode.HALF_UP);
-        return temp.doubleValue();
-    }
-
-    public void rollback(Step step) {
-        connectLast = step.connectLast;
-        availableCoordinates = new ArrayList<>(step.availableCoordinates);
-        lastAvailable = new ArrayList<>(step.lastAvailable);
-        createdLines = new ArrayList<>(step.createdLines);
-        steps = new ArrayList<>(step.steps);
-        /* THIS LINE PREVENTS NEW LINES FROM USING THE OLD POINT
-            TODO - Find replacement for this line (Preferably flags)
-         */
-        //availableCoordinates.remove(lastLine.getEnd());
-        lastLine = step.lastLine;
-        lastStep = step.lastStep;
-    }
-
+    /**
+     * This method commands the line builder to go back one step. It will go back if
+     * there is a step to go back to, otherwise it will throw an exception.
+     *
+     * @throws CannotGoBackException If there are no steps to go back to, it will throw this exception.
+     */
     public void back() throws CannotGoBackException {
         if(steps.size() == 0) throw new CannotGoBackException("Cannot go back.");
         rollback(lastStep);
     }
 
+    /**
+     * This method changes all of the values of the line builder to the given step.
+     *
+     * @param step The step to rollback to.
+     */
+    private void rollback(Step step) {
+        connectLast = step.connectLast;
+        availableCoordinates = new ArrayList<>(step.availableCoordinates);
+        lastAvailable = new ArrayList<>(step.lastAvailable);
+        createdLines = new ArrayList<>(step.createdLines);
+        steps = new ArrayList<>(step.steps);
+        lastLine = step.lastLine;
+        lastStep = step.lastStep;
+    }
+
+    /**
+     * Finds the next best line and validates it and creates a new step.
+     */
     public void step() {
         // If there are available coordinates, execute a step. Otherwise, reject the input.
         if(availableCoordinates.size() != 0) {
@@ -200,11 +184,13 @@ public class LineBuilder {
             steps.add(thisStep);
             lastStep = thisStep;
 
+            /*
             // If there is only one coordinate left to be connected, add the starting point back.
             if(availableCoordinates.size() == 1) {
                 availableCoordinates.add(originPoint);
                 connectLast = true;
             }
+            */
 
             // Remove all flagged coordinates
             for(Flag flag : flagList) {
@@ -241,10 +227,28 @@ public class LineBuilder {
             flagList = new ArrayList<>();
             thisStep.setStepResult(Step.StepResult.SUCCESSFUL);
 
+            if(availableCoordinates.size() == 1 && lastLine.getEnd().equals(originPoint)) {
+                availableCoordinates.clear();
+                thisStep.setStepResult(Step.StepResult.COMPLETE);
+            }
+
+            if(availableCoordinates.size() == 1) availableCoordinates.add(originPoint);
+
         } else {
             Step thisStep = new Step(this, Step.StepResult.NO_MORE_LINES);
             steps.add(thisStep);
         }
+    }
+
+    /**
+     * (Hypothetical step) Finds the next line without changing anything.
+     */
+    public Segment hypoStep() {
+        ArrayList<Coordinate> coordinateList = new ArrayList<>(availableCoordinates);
+        if(coordinateList.size() == 1) coordinateList.add(originPoint);
+        for(Flag flag : flagList)
+            coordinateList.remove(flag.coordinate);
+        return findNextBestLine(coordinateList);
     }
 
     private Segment findNextBestLine(ArrayList<Coordinate> available) {
@@ -267,6 +271,27 @@ public class LineBuilder {
         int indexOfSmallestCombined = findSmallestValue(combined);
 
         return new Segment(start, hand.get(indexOfSmallestCombined));
+    }
+
+    private static int findSmallestValue(ArrayList<Double> array) {
+        if(array.size() == 0) throw new IllegalArgumentException("Argument has 0 size.");
+        double smallestValue = array.get(0);
+        int indexOfSmallestValue = 0;
+        for(Double value : array) {
+            if(value < smallestValue) {
+                smallestValue = value;
+                indexOfSmallestValue = array.indexOf(value);
+            }
+        }
+        return indexOfSmallestValue;
+    }
+
+    public LineBuilder(ArrayList<Coordinate> coordinateList) {
+        if(coordinateList.size() == 0) throw new IllegalArgumentException("Given list contains no coordinates.");
+        connectLast = false;
+        originalCoordinates = new ArrayList<>(coordinateList);
+        availableCoordinates = new ArrayList<>(coordinateList);
+        originPoint = coordinateList.get(0);
     }
 
     // <editor-fold defaultstate="collapsed" desc="Accessor Methods">
@@ -294,7 +319,8 @@ public class LineBuilder {
     public Segment getLastLine() {
         return lastLine;
     }
-    public Step getLastStep() {
+    public Step getLastStep() throws CannotGoBackException {
+        if(lastStep == null) throw new CannotGoBackException("No previous step to retrieve.");
         return lastStep;
     }
     // </editor-fold>

@@ -46,11 +46,10 @@ public class Segment implements java.io.Serializable {
         pen.up();
         pen.move(START);
         pen.down();
-        
-        pen.setColor(color);
-        START.draw(pen);
+
+        START.draw(pen, color);
         pen.move(END);
-        END.draw(pen);
+        END.draw(pen, color);
     }
 
     /**

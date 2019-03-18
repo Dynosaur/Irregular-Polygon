@@ -48,6 +48,15 @@ public class GUI {
 
     private void draw() {
         clearDrawPanel();
+        try {
+            if (lineBuilder.getLastStep().getStepResult() != LineBuilder.Step.StepResult.COMPLETE) {
+                Segment futureLine = lineBuilder.hypoStep();
+                futureLine.draw(pen, new Color(200, 200, 200));
+            }
+        } catch(LineBuilder.CannotGoBackException e) {
+            Segment futureLine = lineBuilder.hypoStep();
+            futureLine.draw(pen, new Color(200,200,200));
+        }
         for (Coordinate coordinate : lineBuilder.getAvailableCoordinates())
             coordinate.draw(pen, Color.BLACK);
         for (Segment line : lineBuilder.getCreatedLines())
@@ -81,7 +90,7 @@ public class GUI {
         currentFlagsTable.repaint();
         try {
             lastStepAvailableCoordinatesTable.setModel(new CoordinateTableModel(lineBuilder.getLastStep().getAvailableCoordinates()));
-        } catch(NullPointerException e) {
+        } catch(LineBuilder.CannotGoBackException e) {
             lastStepAvailableCoordinatesTable.setModel(new CoordinateTableModel(new ArrayList<>()));
         }
     }
@@ -90,22 +99,26 @@ public class GUI {
         clearHelpText();
         lineBuilder.step();
         System.out.println(lineBuilder.getAvailableCoordinates());
-        switch (lineBuilder.getLastStep().getStepResult()) {
-            case SUCCESSFUL:
-                numOfSteps++;
-                for(LineBuilder.Flag f : lineBuilder.getFlags())
-                    lineBuilder.getAvailableCoordinates().add(f.getCoordinate());
-                break;
-            case FAILED:
-                System.out.println(lineBuilder.getAvailableCoordinates());
-                lineBuilder.getSteps().remove(lineBuilder.getLastStep());
-                System.out.println(lineBuilder.getAvailableCoordinates());
-                errorLabel.setText("Step failed.");
-                break;
-            case NO_MORE_LINES:
-                errorLabel.setText("No more lines can be drawn.");
-                lineBuilder.getSteps().remove(lineBuilder.getLastStep());
-                break;
+        try {
+            switch(lineBuilder.getLastStep().getStepResult()) {
+                case SUCCESSFUL:
+                    numOfSteps++;
+                    for (LineBuilder.Flag f : lineBuilder.getFlags())
+                        lineBuilder.getAvailableCoordinates().add(f.getCoordinate());
+                    break;
+                case FAILED:
+                    System.out.println(lineBuilder.getAvailableCoordinates());
+                    lineBuilder.getSteps().remove(lineBuilder.getLastStep());
+                    System.out.println(lineBuilder.getAvailableCoordinates());
+                    errorLabel.setText("Step failed.");
+                    break;
+                case NO_MORE_LINES:
+                    errorLabel.setText("No more lines can be drawn.");
+                    lineBuilder.getSteps().remove(lineBuilder.getLastStep());
+                    break;
+            }
+        } catch(LineBuilder.CannotGoBackException e) {
+
         }
         update();
     }
