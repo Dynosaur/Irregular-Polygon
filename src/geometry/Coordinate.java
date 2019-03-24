@@ -35,15 +35,9 @@ public class Coordinate implements java.io.Serializable {
         return (otherCoordinate.Y - Y) / (otherCoordinate.X - X);
     }
 
-    /*
     public double angle(Coordinate otherCoordinate) {
-        if(this.equals(otherCoordinate)) return 0;
-        Coordinate c = new Coordinate(otherCoordinate.X, Y);
-        Segment hyp = new Segment(this, otherCoordinate);
-        Segment adj = new Segment(this, c);
-        return Math.toDegrees(Math.acos(adj.getDistance() / hyp.getDistance()));
+        return Math.toDegrees(Math.atan(this.slope(otherCoordinate)));
     }
-    */
 
     /**
      * Draws this coordinate with the color black.

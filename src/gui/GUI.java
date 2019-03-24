@@ -1,15 +1,27 @@
 package gui;
 
-import gpdraw.SketchPadPanel;
+import graphics.CustomPanel;
 
 import javax.swing.*;
 
 import geometry.LineBuilder;
+
 import geometry.Coordinate;
+
 import geometry.Segment;
 
-import java.awt.*;
-import java.awt.event.*;
+import java.awt.Color;
+
+import java.awt.event.MouseAdapter;
+
+import java.awt.event.MouseEvent;
+
+import java.io.File;
+
+import java.io.IOException;
+
+import java.io.PrintWriter;
+
 import java.util.ArrayList;
 
 /**
@@ -39,7 +51,7 @@ public class GUI {
 
     private JLabel stepLabel, errorLabel, flagHelpLabel, mouseCoordinateLabel;
 
-    private SketchPadPanel drawPanel;
+    private CustomPanel drawPanel;
 
     private Pen pen;
 
@@ -49,7 +61,7 @@ public class GUI {
     private void draw() {
         clearDrawPanel();
         try {
-            if (lineBuilder.getLastStep().getStepResult() != LineBuilder.Step.StepResult.COMPLETE) {
+            if (lineBuilder.getLastStep().getStepResult() != LineBuilder.Step.StepResult.COMPLETE && lineBuilder.getLastStep().getStepResult() != LineBuilder.Step.StepResult.NO_MORE_LINES) {
                 Segment futureLine = lineBuilder.hypoStep();
                 futureLine.draw(pen, new Color(200, 200, 200));
             }
@@ -68,6 +80,7 @@ public class GUI {
     // <editor-fold defaultstate="collapsed" desc="Event Handling">
     private void clearHelpText() {
         errorLabel.setText("");
+        errorLabel.setForeground(Color.RED);
         flagHelpLabel.setText("");
         mouseCoordinateLabel.setText("");
     }
@@ -78,7 +91,7 @@ public class GUI {
     }
 
     private void update() {
-        stepLabel.setText("Steps Completed: " + numOfSteps);
+        stepLabel.setText("Steps Completed: " + lineBuilder.getSteps().size());
 
         draw();
 
@@ -98,28 +111,32 @@ public class GUI {
     private void nextButtonClicked() {
         clearHelpText();
         lineBuilder.step();
-        System.out.println(lineBuilder.getAvailableCoordinates());
         try {
             switch(lineBuilder.getLastStep().getStepResult()) {
                 case SUCCESSFUL:
                     numOfSteps++;
-                    for (LineBuilder.Flag f : lineBuilder.getFlags())
+                    for(LineBuilder.Flag f : lineBuilder.getFlags())
                         lineBuilder.getAvailableCoordinates().add(f.getCoordinate());
                     break;
                 case FAILED:
                     System.out.println(lineBuilder.getAvailableCoordinates());
                     lineBuilder.getSteps().remove(lineBuilder.getLastStep());
                     System.out.println(lineBuilder.getAvailableCoordinates());
+                    errorLabel.setForeground(Color.RED);
                     errorLabel.setText("Step failed.");
                     break;
                 case NO_MORE_LINES:
+                    errorLabel.setForeground(Color.RED);
                     errorLabel.setText("No more lines can be drawn.");
-                    lineBuilder.getSteps().remove(lineBuilder.getLastStep());
+                    //lineBuilder.getSteps().remove(lineBuilder.getLastStep());
+                    break;
+                case COMPLETE:
+                    numOfSteps++;
+                    errorLabel.setForeground(new Color(100,200,0));
+                    errorLabel.setText("Polygon complete!");
                     break;
             }
-        } catch(LineBuilder.CannotGoBackException e) {
-
-        }
+        } catch(LineBuilder.CannotGoBackException e) {}
         update();
     }
 
@@ -149,8 +166,14 @@ public class GUI {
         MouseAdapter mouse = new MouseAdapter() {
             public void mousePressed(MouseEvent e) {
                 Coordinate coordinate = new Coordinate(e.getX() - drawPanel.getWidth() / 2.0D, -e.getY() + drawPanel.getHeight() / 2.0D);
-                for (Coordinate panelCoordinate : lineBuilder.getAvailableCoordinates()) {
-                    if (coordinate.distance(panelCoordinate) < 5) {
+                for(Coordinate panelCoordinate : lineBuilder.getAvailableCoordinates()) {
+                    if(coordinate.distance(panelCoordinate) < 5) {
+                        if(panelCoordinate.equals(lineBuilder.getOriginPoint())) {
+                            flagHelpLabel.setForeground(Color.RED);
+                            flagHelpLabel.setText("Cannot flag the origin point.");
+                            drawPanel.removeMouseListener(this);
+                            return;
+                        }
                         lineBuilder.getFlags().add(new LineBuilder.Flag(panelCoordinate));
                         flagHelpLabel.setText("Added Flag at " + panelCoordinate);
                         flagHelpLabel.setForeground(new Color(100, 200, 0));
@@ -165,6 +188,17 @@ public class GUI {
             }
         };
         drawPanel.addMouseListener(mouse);
+    }
+
+    private void exportButtonClicked() {
+        File file = new File("system" + ".txt");
+        try {
+            file.createNewFile();
+            PrintWriter writer = new PrintWriter(file);
+            for(Coordinate coordinate : lineBuilder.getOriginalCoordinates())
+                writer.println(coordinate);
+            writer.close();
+        } catch (IOException e) {}
     }
     // </editor-fold>
 
@@ -387,9 +421,11 @@ public class GUI {
         JButton backButton = new JButton("Back");
         JButton nextButton = new JButton("Next");
         JButton resetButton = new JButton("Reset");
+        JButton exportButton = new JButton("Export");
         backButton.addActionListener(e -> backButtonClicked());
         nextButton.addActionListener(e -> nextButtonClicked());
         resetButton.addActionListener(e -> resetButtonClicked());
+        exportButton.addActionListener(e -> exportButtonClicked());
 
         errorLabel = new JLabel();
         errorLabel.setForeground(Color.RED);
@@ -410,7 +446,12 @@ public class GUI {
                                                         .addGap(10)
                                                         .addComponent(nextButton)
                                         )
-                                        .addComponent(resetButton)
+                                        .addGroup(
+                                            layout.createSequentialGroup()
+                                                .addComponent(resetButton)
+                                                .addGap(10)
+                                                .addComponent(exportButton)
+                                        )
                                         .addComponent(errorLabel)
                         )
                         .addGap(10)
@@ -424,7 +465,11 @@ public class GUI {
                                         .addComponent(nextButton)
                         )
                         .addGap(10)
-                        .addComponent(resetButton)
+                        .addGroup(
+                            layout.createParallelGroup()
+                                .addComponent(resetButton)
+                                .addComponent(exportButton)
+                        )
                         .addComponent(errorLabel)
                         .addGap(10)
         );
@@ -461,7 +506,7 @@ public class GUI {
         superDrawPanel = new JPanel();
         superDrawPanel.setBorder(BorderFactory.createTitledBorder("Draw"));
 
-        drawPanel = new SketchPadPanel(0);
+        drawPanel = new CustomPanel(1);
         pen = new Pen(drawPanel);
 
         flagHelpLabel = new JLabel();
