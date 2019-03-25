@@ -4,7 +4,7 @@ import gpdraw.DrawingTool;
 
 /**
  * @author Alejandro Doberenz
- * @version 3/17/2019
+ * @version 3/24/2019
  *
  * A coordinate represents a position on an X and Y graph. It contains methods to compare it to other coordinates,
  * convert it to a String, and draw it with a Pen object.
@@ -37,6 +37,16 @@ public class Coordinate implements java.io.Serializable {
 
     public double angle(Coordinate otherCoordinate) {
         return Math.toDegrees(Math.atan(this.slope(otherCoordinate)));
+    }
+
+    public static Coordinate random(double range) {
+        if(range <= 0) throw new IllegalArgumentException("Argument 'range' cannot be less than or equal to 0: " + range);
+        return random(-range/2, range/2);
+    }
+
+    public static Coordinate random(double min, double max) {
+        if(min >= max) throw new IllegalArgumentException("Argument 'min' must be less than 'max': " + min + " > " + max);
+        return new Coordinate((1-Math.random())*(max-min)+min,(1-Math.random())*(max-min)+min);
     }
 
     /**
