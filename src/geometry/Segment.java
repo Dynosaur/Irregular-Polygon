@@ -112,7 +112,7 @@ public class Segment implements java.io.Serializable {
     }
 
     @Override public String toString() {
-        return "Segment (" + START + ", " + END + ")";
+        return String.format("Segment[DISTANCE=%1.3f,SLOPE=%1.2f,("+START+" , "+END+")]", DISTANCE, SLOPE);
     }
 
     @Override public boolean equals(Object obj) {

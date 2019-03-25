@@ -86,7 +86,7 @@ public class Coordinate implements java.io.Serializable {
     }
 
     @Override public String toString() {
-        return "Point[X=" + X + ",Y=" + Y + "]";
+        return String.format("Point[X=%1.3f,Y=%1.3f]", X, Y);
     }
 
     @Override public boolean equals(Object obj) {
