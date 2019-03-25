@@ -89,6 +89,12 @@ public class Coordinate implements java.io.Serializable {
         return "Point[X=" + X + ",Y=" + Y + "]";
     }
 
+    @Override public boolean equals(Object obj) {
+        if(!(obj instanceof Coordinate)) return false;
+        Coordinate point = (Coordinate) obj;
+        return distance(point) < 0.0001;
+    }
+
     public Coordinate(double x, double y) {
         X = x;
         Y = y;
