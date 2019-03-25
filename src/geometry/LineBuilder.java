@@ -103,7 +103,7 @@ public class LineBuilder {
 
     private ArrayList<Coordinate> availableCoordinates;
 
-    private Coordinate originPoint;
+    private Coordinate originPoint, currentCoordinate;
     // </editor-fold>
 
     /**
@@ -169,15 +169,61 @@ public class LineBuilder {
         if(availableCoordinates.size() == 1) availableCoordinates.add(originPoint);
     }
 
-    /**
-     * (Hypothetical step) Finds the next line without changing anything.
-     */
-    public Segment hypoStep() {
-        ArrayList<Coordinate> coordinateList = new ArrayList<>(availableCoordinates);
-        if(coordinateList.size() == 1) coordinateList.add(originPoint);
+    private enum searchMethod {
+        SMALLEST_ANGLE,
+        SMALLEST_DISTANCE
+    }
+
+    public void improvedStep() {
+        if(availableCoordinates.size() == 0) throw new IllegalArgumentException("'availableCoordinates' has 0 size.");
+
+        Step step = new Step(this);
+        steps.add(step);
+
         for(Flag flag : flagList)
-            coordinateList.remove(flag.coordinate);
-        return findNextBestLine(coordinateList);
+            availableCoordinates.remove(flag.coordinate);
+
+        currentCoordinate = availableCoordinates.get(0);
+        availableCoordinates.remove(currentCoordinate);
+        ArrayList<Segment> possibleLines = new ArrayList<>();
+        for(Coordinate candidate : availableCoordinates)
+            possibleLines.add(new Segment(currentCoordinate, candidate));
+        for(Segment candidate : possibleLines)
+            for(Segment line : createdLines)
+                if(candidate.doesIntersect(line))
+                    possibleLines.remove(candidate);
+        sortByLength(possibleLines);
+    }
+
+    public static void sortByLength(ArrayList<Segment> lines) {
+        Segment smallestLine = lines.get(0);
+        Segment lastLine = lines.get(0);
+        sortLoop: while(true) {
+            for(Segment line : lines) {
+                if(line == lines.get(lines.size()-1)) break sortLoop;
+                if(line.getDistance() > lines.get(lines.indexOf(line)+1).getDistance()) break;
+            }
+            for(int i = 0; i < lines.size(); i++) {
+                Segment currentLine = lines.get(i);
+                if(currentLine == smallestLine) {
+                    lastLine = currentLine;
+                    continue;
+                }
+                if(currentLine.getDistance() < smallestLine.getDistance()) {
+                    lines.remove(currentLine);
+                    lines.add(0, currentLine);
+                    smallestLine = currentLine;
+                    continue;
+                }
+                if(currentLine.getDistance() < lastLine.getDistance()) {
+                    int index = lines.indexOf(lastLine)+1;
+                    lines.remove(lastLine);
+                    lines.add(index, lastLine);
+                    continue;
+                }
+                lastLine = new Segment(currentLine);
+            }
+        }
     }
 
     public static Segment findNextBestLine(ArrayList<Coordinate> available) {
@@ -189,10 +235,10 @@ public class LineBuilder {
 
         ArrayList<Double> combined = new ArrayList<>();
 
-        for(Coordinate candidate : hand)
-            combined.add(Math.abs(start.angle(candidate)));
+        for(Coordinate candidate : available)
+            combined.add(start.angle(candidate));
 
-        return new Segment(start, hand.get(combined.indexOf(findLargestValue(combined))));
+        return new Segment(start, available.get(combined.indexOf(findLargestValue(combined))));
     }
 
     private static double findSmallestValue(ArrayList<Double> list) {
