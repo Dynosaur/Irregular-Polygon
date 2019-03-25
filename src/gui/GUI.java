@@ -61,19 +61,19 @@ public class GUI {
     private void draw() {
         clearDrawPanel();
         try {
-            if (lineBuilder.getLastStep().getStepResult() != LineBuilder.Step.StepResult.COMPLETE && lineBuilder.getLastStep().getStepResult() != LineBuilder.Step.StepResult.NO_MORE_LINES) {
-                Segment futureLine = lineBuilder.hypoStep();
-                futureLine.draw(pen, new Color(200, 200, 200));
+            if(lineBuilder.getLastStep().getStepResult() != LineBuilder.Step.StepResult.COMPLETE && lineBuilder.getLastStep().getStepResult() != LineBuilder.Step.StepResult.NO_MORE_LINES) {
+                Segment futureLine = LineBuilder.findNextBestLine(lineBuilder.getAvailableCoordinates());
+                futureLine.draw(pen, new Color(0,0,0, 100));
             }
         } catch(LineBuilder.CannotGoBackException e) {
-            Segment futureLine = lineBuilder.hypoStep();
-            futureLine.draw(pen, new Color(200,200,200));
+            Segment futureLine = LineBuilder.findNextBestLine(lineBuilder.getAvailableCoordinates());
+            futureLine.draw(pen, new Color(0,0,0,100));
         }
-        for (Coordinate coordinate : lineBuilder.getAvailableCoordinates())
+        for(Coordinate coordinate : lineBuilder.getAvailableCoordinates())
             coordinate.draw(pen, Color.BLACK);
-        for (Segment line : lineBuilder.getCreatedLines())
+        for(Segment line : lineBuilder.getCreatedLines())
             line.draw(pen, Color.BLACK);
-        for (LineBuilder.Flag flag : lineBuilder.getFlags())
+        for(LineBuilder.Flag flag : lineBuilder.getFlags())
             flag.getCoordinate().draw(pen, Color.RED);
     }
 
