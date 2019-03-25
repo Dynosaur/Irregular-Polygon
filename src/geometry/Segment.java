@@ -42,6 +42,7 @@ public class Segment implements java.io.Serializable {
     public void draw(gui.Pen pen) {
         draw(pen, java.awt.Color.BLACK);
     }
+
     public void draw(gui.Pen pen, java.awt.Color color) {
         pen.up();
         pen.move(START);
@@ -50,6 +51,16 @@ public class Segment implements java.io.Serializable {
         START.draw(pen, color);
         pen.move(END);
         END.draw(pen, color);
+    }
+
+    public static Segment random(double range) {
+        if(range <= 0) throw new IllegalArgumentException("Argument 'range' cannot be less than 0: " + range);
+        return new Segment(Coordinate.random(range), Coordinate.random(range));
+    }
+
+    public static Segment random(double min, double max) {
+        if(min >= max) throw new IllegalArgumentException("Argument 'min' must be less than argument 'max': " + min + " > " + max);
+        return new Segment(Coordinate.random(min, max), Coordinate.random(min, max));
     }
 
     /**
@@ -96,8 +107,18 @@ public class Segment implements java.io.Serializable {
         }
     }
 
+    public boolean equals(Segment otherLine) {
+        return START.equals(otherLine.START) && END.equals(otherLine.END);
+    }
+
     @Override public String toString() {
         return "Segment (" + START + ", " + END + ")";
+    }
+
+    @Override public boolean equals(Object obj) {
+        if(!(obj instanceof Segment)) return false;
+        Segment otherLine = (Segment) obj;
+        return START.equals(otherLine.START) && END.equals(otherLine.END);
     }
 
     public Segment(Coordinate start, Coordinate end) {
@@ -118,6 +139,9 @@ public class Segment implements java.io.Serializable {
                 MAXIMUM = end.getX();
             }
         }
+    }
+    public Segment(Segment otherLine) {
+        this(otherLine.START, otherLine.END);
     }
 
 }
