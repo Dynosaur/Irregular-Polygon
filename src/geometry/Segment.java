@@ -2,7 +2,7 @@ package geometry;
 
 /**
  * @author Alejandro Doberenz
- * @version 2/25/2019
+ * @version 3/24/2019
  *
  * A line segment is a line that begins at a coordinate and ends at another. Although drawing methods do not require it,
  * the slope is calculated for the reason of calculating intersecting lines.
