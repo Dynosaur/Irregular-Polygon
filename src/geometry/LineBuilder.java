@@ -136,6 +136,7 @@ public class LineBuilder {
             Step thisStep = new Step(this);
             thisStep.setStepResult(Step.StepResult.NO_MORE_LINES);
             steps.add(thisStep);
+            return;
         }
 
         Step step = new Step(this);
