@@ -71,10 +71,11 @@ public class GUI {
         }
         for(Coordinate coordinate : lineBuilder.getAvailableCoordinates())
             coordinate.draw(pen, Color.BLACK);
-        for(Segment line : lineBuilder.getCreatedLines())
+        for(Segment line : lineBuilder.getLinesList())
             line.draw(pen, Color.BLACK);
         for(LineBuilder.Flag flag : lineBuilder.getFlags())
             flag.getCoordinate().draw(pen, Color.RED);
+        lineBuilder.getOriginPoint().draw(pen, new Color(255,200,0));
     }
 
     // <editor-fold defaultstate="collapsed" desc="Event Handling">
@@ -97,7 +98,7 @@ public class GUI {
 
         availableCoordinatesTable.setModel(new CoordinateTableModel(lineBuilder.getAvailableCoordinates()));
         availableCoordinatesTable.repaint();
-        currentLinesTable.setModel(new LineTableModel(lineBuilder.getCreatedLines()));
+        currentLinesTable.setModel(new LineTableModel(lineBuilder.getLinesList()));
         currentLinesTable.repaint();
         currentFlagsTable.setModel(new CoordinateTableModel(lineBuilder.getFlaggedCoordinates()));
         currentFlagsTable.repaint();
@@ -110,7 +111,7 @@ public class GUI {
 
     private void nextButtonClicked() {
         clearHelpText();
-        lineBuilder.step();
+        lineBuilder.improvedStep();
         try {
             switch(lineBuilder.getLastStep().getStepResult()) {
                 case SUCCESSFUL:
@@ -271,7 +272,7 @@ public class GUI {
         JScrollPane availableCoordinatesTableScrollPane = new JScrollPane(availableCoordinatesTable);
 
         // Set up table and scroll pane for current lines
-        LineTableModel currentLinesModel = new LineTableModel(lineBuilder.getCreatedLines());
+        LineTableModel currentLinesModel = new LineTableModel(lineBuilder.getLinesList());
         JLabel currentLinesTitle = new JLabel("Current Lines");
         currentLinesTable = new JTable(currentLinesModel);
         currentLinesTable.setFillsViewportHeight(true);

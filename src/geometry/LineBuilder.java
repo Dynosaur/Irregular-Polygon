@@ -55,7 +55,7 @@ public class LineBuilder {
         private Step(LineBuilder lineBuilder) {
             connectLast = lineBuilder.connectLast;
             availableCoordinates = new ArrayList<>(lineBuilder.availableCoordinates);
-            createdLines = new ArrayList<>(lineBuilder.createdLines);
+            createdLines = new ArrayList<>(lineBuilder.linesList);
             steps = new ArrayList<>(lineBuilder.steps);
         }
 
@@ -93,7 +93,7 @@ public class LineBuilder {
     // <editor-fold defaultstate="collapsed" desc="Variables"
     private boolean connectLast;
 
-    private ArrayList<Segment> createdLines = new ArrayList<>();
+    private ArrayList<Segment> linesList = new ArrayList<>();
 
     private ArrayList<Step> steps = new ArrayList<>();
 
@@ -124,7 +124,7 @@ public class LineBuilder {
     private void rollback(Step step) {
         connectLast = step.connectLast;
         availableCoordinates = new ArrayList<>(step.availableCoordinates);
-        createdLines = new ArrayList<>(step.createdLines);
+        linesList = new ArrayList<>(step.createdLines);
         steps = new ArrayList<>(step.steps);
     }
 
@@ -146,13 +146,13 @@ public class LineBuilder {
 
         Segment candidate = findNextBestLine(availableCoordinates);
 
-        for(Segment line : createdLines)
+        for(Segment line : linesList)
             if(candidate.doesIntersect(line)) {
                 step.setStepResult(Step.StepResult.FAILED);
                 return;
             }
 
-        createdLines.add(candidate);
+        linesList.add(candidate);
         availableCoordinates.remove(candidate.getStart());
         availableCoordinates.remove(candidate.getEnd());
         availableCoordinates.add(0,candidate.getEnd());
@@ -174,7 +174,7 @@ public class LineBuilder {
         SMALLEST_DISTANCE
     }
 
-    public void improvedStep() {
+    public synchronized Segment improvedStep() {
         if(availableCoordinates.size() == 0) throw new IllegalArgumentException("'availableCoordinates' has 0 size.");
 
         Step step = new Step(this);
@@ -189,10 +189,16 @@ public class LineBuilder {
         for(Coordinate candidate : availableCoordinates)
             possibleLines.add(new Segment(currentCoordinate, candidate));
         for(Segment candidate : possibleLines)
-            for(Segment line : createdLines)
+            for(Segment line : linesList)
                 if(candidate.doesIntersect(line))
                     possibleLines.remove(candidate);
         sortByLength(possibleLines);
+        step.setStepResult(Step.StepResult.SUCCESSFUL);
+        Segment selected = possibleLines.get(0);
+        linesList.add(selected);
+        availableCoordinates.remove(getLastLine().getEnd());
+        availableCoordinates.add(0,getLastLine().getEnd());
+        return selected;
     }
 
     public static void sortByLength(ArrayList<Segment> lines) {
@@ -278,8 +284,8 @@ public class LineBuilder {
     public ArrayList<Coordinate> getAvailableCoordinates() {
         return availableCoordinates;
     }
-    public ArrayList<Segment> getCreatedLines() {
-        return createdLines;
+    public ArrayList<Segment> getLinesList() {
+        return linesList;
     }
     public ArrayList<Step> getSteps() {
         return steps;
@@ -298,7 +304,7 @@ public class LineBuilder {
         return steps.get(steps.size()-1);
     }
     public Segment getLastLine() {
-        return createdLines.get(createdLines.size()-1);
+        return linesList.get(linesList.size()-1);
     }
     // </editor-fold>
 
