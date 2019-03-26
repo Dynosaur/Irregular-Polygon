@@ -1,8 +1,14 @@
 package gui;
 
 import geometry.Coordinate;
+
+import geometry.Segment;
+
 import gpdraw.SketchPad;
+
 import gpdraw.SketchPadPanel;
+
+import java.util.ArrayList;
 
 /**
  * @author Alejandro Doberenz
@@ -13,6 +19,16 @@ import gpdraw.SketchPadPanel;
  */
 public class Pen extends gpdraw.DrawingTool implements java.io.Serializable {
 
+    public void drawCoordinates(ArrayList<Coordinate> list) {
+        for(Coordinate coordinate : list)
+            coordinate.draw(this);
+    }
+
+    public void drawSegments(ArrayList<Segment> list) {
+        for(Segment line : list)
+            line.draw(this);
+    }
+
     public void move(Coordinate c) {
         move(c.getX(), c.getY());
     }
@@ -20,9 +36,11 @@ public class Pen extends gpdraw.DrawingTool implements java.io.Serializable {
     public Pen() {
         super();
     }
+
     public Pen(SketchPad sp) {
         super(sp);
     }
+
     public Pen(SketchPadPanel sp) {
         super(sp);
     }
